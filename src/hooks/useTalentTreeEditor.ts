@@ -30,7 +30,7 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
     showNodeEditor: false,
     showTreeEditor: false,
     pendingNodePosition: null,
-    isShiftHeld: false,
+    isCtrlHeld: false,
   });
 
   // Tree operations
@@ -224,9 +224,9 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
     }));
   }, []);
 
-  // Shift key tracking for connection deletion
-  const setShiftHeld = useCallback((isHeld: boolean) => {
-    setEditorState(prev => ({ ...prev, isShiftHeld: isHeld }));
+  // Ctrl/Cmd key tracking for connection deletion
+  const setCtrlHeld = useCallback((isHeld: boolean) => {
+    setEditorState(prev => ({ ...prev, isCtrlHeld: isHeld }));
   }, []);
 
   return {
@@ -271,6 +271,6 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
     startNodeCreation,
     createPendingNode,
     cancelNodeCreation,
-    setShiftHeld,
+    setCtrlHeld,
   };
 }; 

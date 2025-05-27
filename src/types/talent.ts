@@ -72,7 +72,7 @@ export interface EditorState {
   showNodeEditor: boolean;
   showTreeEditor: boolean;
   pendingNodePosition: GridPosition | null; // For creating new nodes
-  isShiftHeld: boolean; // For connection deletion mode
+  isCtrlHeld: boolean; // For connection deletion mode
 }
 
 export interface NodeTemplate {

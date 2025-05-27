@@ -8,7 +8,7 @@ interface TalentConnectionProps {
   editorMode?: EditorMode;
   connectionId?: string;
   onConnectionClick?: (connectionId: string) => void;
-  isShiftHeld?: boolean;
+  isCtrlHeld?: boolean;
 }
 
 const TalentConnection: React.FC<TalentConnectionProps> = ({
@@ -18,7 +18,7 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
   editorMode = EditorMode.SIMULATE,
   connectionId,
   onConnectionClick,
-  isShiftHeld = false,
+  isCtrlHeld = false,
 }) => {
   const fromPixel = gridToPixel({ x: fromNode.gridX, y: fromNode.gridY });
   const toPixel = gridToPixel({ x: toNode.gridX, y: toNode.gridY });
@@ -28,8 +28,8 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
       ? "stroke-talent-connectionActive stroke-2 drop-shadow-sm"
       : "stroke-talent-connection stroke-1 opacity-60";
     
-    // Add interactive styles only when shift is held in edit mode
-    if (editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isShiftHeld) {
+    // Add interactive styles only when ctrl is held in edit mode
+    if (editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isCtrlHeld) {
       return `${baseStyles} cursor-pointer hover:stroke-red-400 hover:stroke-3 transition-all duration-150`;
     }
     
@@ -37,7 +37,7 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
   };
 
   const handleConnectionClick = (e: React.MouseEvent) => {
-    if (editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isShiftHeld) {
+    if (editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isCtrlHeld) {
       e.preventDefault();
       e.stopPropagation();
       onConnectionClick(connectionId);
@@ -78,8 +78,8 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
         </marker>
       </defs>
       
-      {/* Invisible wider line for easier clicking when shift is held */}
-      {editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isShiftHeld && (
+      {/* Invisible wider line for easier clicking when ctrl is held */}
+      {editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isCtrlHeld && (
         <line
           x1={fromPixel.x}
           y1={fromPixel.y}
@@ -102,8 +102,8 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
         className={getConnectionStyles()}
         strokeLinecap="round"
         markerEnd={`url(#${markerId})`}
-        onClick={editorMode === EditorMode.EDIT && isShiftHeld ? handleConnectionClick : undefined}
-        style={editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isShiftHeld ? { pointerEvents: 'all' } : undefined}
+        onClick={editorMode === EditorMode.EDIT && isCtrlHeld ? handleConnectionClick : undefined}
+        style={editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isCtrlHeld ? { pointerEvents: 'all' } : undefined}
       />
     </g>
   );

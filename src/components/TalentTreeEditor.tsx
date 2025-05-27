@@ -45,7 +45,7 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
     createPendingNode,
     cancelNodeCreation,
     deleteConnection,
-    setShiftHeld,
+    setCtrlHeld,
   } = useTalentTreeEditor(initialTree);
 
   // Simulation functionality (only used in simulate mode)
@@ -132,15 +132,15 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
           selectNode(null);
         }
       }
-      if (e.key === 'Shift') {
-        setShiftHeld(true);
+      if (e.key === 'Control' || e.key === 'Meta') { // Control on Windows/Linux, Meta (Cmd) on Mac
+        setCtrlHeld(true);
       }
     }
   };
 
   const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.key === 'Shift') {
-      setShiftHeld(false);
+    if (e.key === 'Control' || e.key === 'Meta') {
+      setCtrlHeld(false);
     }
   };
 
@@ -171,6 +171,7 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
         isConnecting={editorState.isConnecting}
         onCancelConnection={cancelConnection}
         validationErrors={getValidationErrors()}
+        isCtrlHeld={editorState.isCtrlHeld}
       />
 
       {/* Header - only show in simulate mode */}
@@ -241,7 +242,7 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
 
           {/* SVG for connections */}
           <svg
-            className={`absolute inset-0 ${editorState.isShiftHeld ? 'z-30' : 'pointer-events-none z-10'}`}
+            className={`absolute inset-0 ${editorState.isCtrlHeld ? 'z-30' : 'pointer-events-none z-10'}`}
             width={gridWidth}
             height={gridHeight}
           >
@@ -263,7 +264,7 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
                   isActive={isActive}
                   editorMode={editorState.mode}
                   connectionId={connection.id}
-                  isShiftHeld={editorState.isShiftHeld}
+                  isCtrlHeld={editorState.isCtrlHeld}
                   onConnectionClick={(connectionId) => {
                     if (window.confirm('Are you sure you want to delete this connection?')) {
                       deleteConnection(connectionId);
@@ -292,7 +293,7 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
                       x={x}
                       y={y}
                       isOccupied={false}
-                      isShiftHeld={editorState.isShiftHeld}
+                      isCtrlHeld={editorState.isCtrlHeld}
                       onCellClick={(cellX: number, cellY: number) => {
                         const pixelPos = { 
                           x: cellX * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
