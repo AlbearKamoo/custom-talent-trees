@@ -5,16 +5,14 @@ import GridCell from './GridCell';
 interface GridCanvasProps {
   onCellClick: (gridPos: GridPosition) => void;
   onCellDoubleClick: (gridPos: GridPosition) => void;
-  hoveredCell: GridPosition | null;
-  onCellHover: (gridPos: GridPosition | null) => void;
+  hoveredCell?: GridPosition | null;
+  onCellHover?: (gridPos: GridPosition | null) => void;
   occupiedCells: Set<string>;
 }
 
 const GridCanvas: React.FC<GridCanvasProps> = ({
   onCellClick,
   onCellDoubleClick,
-  hoveredCell,
-  onCellHover,
   occupiedCells,
 }) => {
   const totalWidth = GRID_CONFIG.width * GRID_CONFIG.cellSize;
@@ -28,13 +26,7 @@ const GridCanvas: React.FC<GridCanvasProps> = ({
     onCellDoubleClick({ x: gridX, y: gridY });
   };
 
-  const handleCellMouseEnter = (gridX: number, gridY: number) => {
-    onCellHover({ x: gridX, y: gridY });
-  };
 
-  const handleCellMouseLeave = () => {
-    onCellHover(null);
-  };
 
   const getCellKey = (x: number, y: number) => `${x}-${y}`;
 
@@ -56,7 +48,6 @@ const GridCanvas: React.FC<GridCanvasProps> = ({
         Array.from({ length: GRID_CONFIG.width }, (_, x) => {
           const cellKey = getCellKey(x, y);
           const isOccupied = occupiedCells.has(cellKey);
-          const isHovered = hoveredCell?.x === x && hoveredCell?.y === y;
           
           return (
             <GridCell
@@ -64,11 +55,8 @@ const GridCanvas: React.FC<GridCanvasProps> = ({
               x={x}
               y={y}
               isOccupied={isOccupied}
-              isHovered={isHovered}
               onCellClick={handleCellClick}
               onCellDoubleClick={handleCellDoubleClick}
-              onCellMouseEnter={handleCellMouseEnter}
-              onCellMouseLeave={handleCellMouseLeave}
             />
           );
         })

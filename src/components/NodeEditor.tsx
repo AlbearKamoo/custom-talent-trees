@@ -7,6 +7,8 @@ interface NodeEditorProps {
   onClose: () => void;
   onSave: (nodeId: string, updates: Partial<TalentNode>) => void;
   onDelete: (nodeId: string) => void;
+  onCreateNew?: (nodeData: any) => void; // For creating new nodes
+  isCreatingNew?: boolean; // Whether we're creating a new node
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({
@@ -15,6 +17,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onClose,
   onSave,
   onDelete,
+  onCreateNew,
+  isCreatingNew = false,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -33,12 +37,24 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         maxRanks: node.maxRanks,
         requiredPoints: node.requiredPoints,
       });
+    } else if (isCreatingNew) {
+      // Reset to default values for new node
+      setFormData({
+        name: 'New Talent',
+        description: 'A new talent ability',
+        icon: '⭐',
+        maxRanks: 1,
+        requiredPoints: 0,
+      });
     }
-  }, [node]);
+  }, [node, isCreatingNew]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (node) {
+    if (isCreatingNew && onCreateNew) {
+      onCreateNew(formData);
+      onClose();
+    } else if (node) {
       onSave(node.id, formData);
       onClose();
     }
@@ -53,13 +69,15 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
   const iconOptions = ['⚔️', '🛡️', '💥', '⭐', '🔥', '❄️', '⚡', '🌟', '💎', '🎯', '🏹', '🗡️'];
 
-  if (!isOpen || !node) return null;
+  if (!isOpen || (!node && !isCreatingNew)) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-gray-800 rounded-lg p-6 w-96 max-w-full mx-4">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-yellow-400">Edit Node</h2>
+          <h2 className="text-xl font-bold text-yellow-400">
+            {isCreatingNew ? 'Create New Node' : 'Edit Node'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white text-2xl"
@@ -155,15 +173,17 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           </div>
 
           <div className="flex justify-between pt-4">
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
-            >
-              Delete Node
-            </button>
+            {!isCreatingNew && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+              >
+                Delete Node
+              </button>
+            )}
             
-            <div className="space-x-2">
+            <div className={`space-x-2 ${isCreatingNew ? 'w-full flex justify-end' : ''}`}>
               <button
                 type="button"
                 onClick={onClose}
@@ -175,7 +195,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                 type="submit"
                 className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors"
               >
-                Save
+                {isCreatingNew ? 'Create' : 'Save'}
               </button>
             </div>
           </div>

@@ -71,6 +71,7 @@ export interface EditorState {
   draggedNode: string | null;
   showNodeEditor: boolean;
   showTreeEditor: boolean;
+  pendingNodePosition: GridPosition | null; // For creating new nodes
 }
 
 export interface NodeTemplate {

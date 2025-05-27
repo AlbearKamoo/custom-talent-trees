@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
-import { TalentTree, EditorMode, GridPosition } from '../types/talent';
+import { useEffect } from 'react';
+import { TalentTree, EditorMode } from '../types/talent';
 import { useTalentTree } from '../hooks/useTalentTree';
 import { useTalentTreeEditor } from '../hooks/useTalentTreeEditor';
 import TalentNode from './TalentNode';
 import TalentConnection from './TalentConnection';
 import EditorToolbar from './EditorToolbar';
 import NodeEditor from './NodeEditor';
-import GridCanvas from './GridCanvas';
+
+import GridCell from './GridCell';
 import { getConnectionState } from '../utils/tree-utils';
 import { GRID_CONFIG } from '../utils/editor-utils';
 
@@ -39,8 +40,10 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
     getValidationErrors,
     exportTree: exportEditorTree,
     importTree: importEditorTree,
-    handleCanvasClick,
-    handleCanvasDoubleClick,
+
+    startNodeCreation,
+    createPendingNode,
+    cancelNodeCreation,
   } = useTalentTreeEditor(initialTree);
 
   // Simulation functionality (only used in simulate mode)
@@ -103,8 +106,7 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
     reader.readAsText(file);
   };
 
-  // Grid state
-  const [hoveredCell, setHoveredCell] = useState<GridPosition | null>(null);
+  // Grid state - no longer needed with new architecture
   
   // Calculate occupied cells
   const occupiedCells = new Set(
@@ -193,30 +195,34 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
             height: gridHeight,
           }}
         >
-          {/* Grid Canvas - only show in edit mode */}
-          {editorState.mode === EditorMode.EDIT && (
-            <div className="absolute inset-0 z-0">
-              <GridCanvas
-                onCellClick={(gridPos) => {
-                  const pixelPos = { 
-                    x: gridPos.x * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
-                    y: gridPos.y * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
-                  };
-                  handleCanvasDoubleClick(pixelPos); // Create node on single click
-                }}
-                onCellDoubleClick={(gridPos) => {
-                  const pixelPos = { 
-                    x: gridPos.x * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
-                    y: gridPos.y * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
-                  };
-                  handleCanvasDoubleClick(pixelPos); // Keep double click for consistency
-                }}
-                hoveredCell={hoveredCell}
-                onCellHover={setHoveredCell}
-                occupiedCells={occupiedCells}
-              />
+          {/* Background grid visual (lines, numbering) */}
+          <div 
+            className="absolute inset-0 z-0 bg-gray-800 border-2 border-gray-600 rounded-lg pointer-events-none"
+            style={{ 
+              backgroundImage: `
+                linear-gradient(to right, rgba(75, 85, 99, 0.3) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(75, 85, 99, 0.3) 1px, transparent 1px)
+              `,
+              backgroundSize: `${GRID_CONFIG.cellSize}px ${GRID_CONFIG.cellSize}px`,
+            }}
+          >
+            {/* Row and column labels */}
+            <div className="absolute -left-8 top-0 h-full flex flex-col justify-around text-sm text-gray-400">
+              {Array.from({ length: GRID_CONFIG.height }, (_, i) => (
+                <div key={i} className="flex items-center justify-center h-8">
+                  {i + 1}
+                </div>
+              ))}
             </div>
-          )}
+            
+            <div className="absolute -top-8 left-0 w-full flex justify-around text-sm text-gray-400">
+              {Array.from({ length: GRID_CONFIG.width }, (_, i) => (
+                <div key={i} className="flex items-center justify-center w-8">
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* SVG for connections */}
           <svg
@@ -245,8 +251,45 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
             })}
           </svg>
 
-          {/* Talent nodes */}
+          {/* Interactive layer: Grid cells + Talent nodes */}
           <div className="absolute inset-0 z-20">
+            {/* Grid cells for empty spaces (edit mode only) */}
+            {editorState.mode === EditorMode.EDIT && 
+              Array.from({ length: GRID_CONFIG.height }, (_, y) =>
+                Array.from({ length: GRID_CONFIG.width }, (_, x) => {
+                  const cellKey = `${x}-${y}`;
+                  const isOccupied = occupiedCells.has(cellKey);
+                  
+                  // Only render empty cells
+                  if (isOccupied) return null;
+                  
+                  return (
+                    <GridCell
+                      key={cellKey}
+                      x={x}
+                      y={y}
+                      isOccupied={false}
+                      onCellClick={(cellX: number, cellY: number) => {
+                        const pixelPos = { 
+                          x: cellX * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
+                          y: cellY * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
+                        };
+                        startNodeCreation(pixelPos);
+                      }}
+                      onCellDoubleClick={(cellX: number, cellY: number) => {
+                        const pixelPos = { 
+                          x: cellX * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
+                          y: cellY * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
+                        };
+                        startNodeCreation(pixelPos);
+                      }}
+                    />
+                  );
+                })
+              )
+            }
+
+            {/* Talent nodes */}
             {tree.nodes.map((node) => (
               <TalentNode
                 key={node.id}
@@ -274,12 +317,18 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
       <NodeEditor
         node={selectedNode}
         isOpen={editorState.showNodeEditor || (editorState.mode === EditorMode.EDIT && !!selectedNode)}
+        isCreatingNew={!!editorState.pendingNodePosition}
         onClose={() => {
-          showNodeEditor(false);
-          selectNode(null);
+          if (editorState.pendingNodePosition) {
+            cancelNodeCreation();
+          } else {
+            showNodeEditor(false);
+            selectNode(null);
+          }
         }}
         onSave={updateNodeData}
         onDelete={deleteNode}
+        onCreateNew={createPendingNode}
       />
 
       {/* Instructions - only show in simulate mode */}

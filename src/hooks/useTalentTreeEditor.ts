@@ -29,6 +29,7 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
     draggedNode: null,
     showNodeEditor: false,
     showTreeEditor: false,
+    pendingNodePosition: null,
   });
 
   // Tree operations
@@ -178,6 +179,50 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
     }
   }, [editorState.mode, addNode]);
 
+  // Start new node creation process (show modal without creating node yet)
+  const startNodeCreation = useCallback((position: Position) => {
+    if (editorState.mode === EditorMode.EDIT) {
+      const gridPos = pixelToGrid(position);
+      
+      // Check if position is already occupied
+      if (isGridPositionOccupied(tree, gridPos)) {
+        return;
+      }
+      
+      setEditorState(prev => ({
+        ...prev,
+        pendingNodePosition: gridPos,
+        showNodeEditor: true,
+        selectedNodeId: null, // Clear any existing selection
+      }));
+    }
+  }, [editorState.mode, tree]);
+
+  // Create node from pending position (called when user saves in modal)
+  const createPendingNode = useCallback((nodeData: NodeTemplate) => {
+    if (editorState.pendingNodePosition) {
+      const newNode = createNode(editorState.pendingNodePosition, nodeData);
+      setTree(prev => addNodeToTree(prev, newNode));
+      setEditorState(prev => ({ 
+        ...prev, 
+        pendingNodePosition: null,
+        selectedNodeId: newNode.id,
+        showNodeEditor: false,
+      }));
+      return newNode.id;
+    }
+    return null;
+  }, [editorState.pendingNodePosition]);
+
+  // Cancel node creation
+  const cancelNodeCreation = useCallback(() => {
+    setEditorState(prev => ({
+      ...prev,
+      pendingNodePosition: null,
+      showNodeEditor: false,
+    }));
+  }, []);
+
   return {
     // State
     tree,
@@ -217,5 +262,8 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
     // Canvas operations
     handleCanvasClick,
     handleCanvasDoubleClick,
+    startNodeCreation,
+    createPendingNode,
+    cancelNodeCreation,
   };
 }; 

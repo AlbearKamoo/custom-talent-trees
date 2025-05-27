@@ -4,66 +4,46 @@ interface GridCellProps {
   x: number;
   y: number;
   isOccupied: boolean;
-  isHovered: boolean;
   onCellClick: (x: number, y: number) => void;
   onCellDoubleClick: (x: number, y: number) => void;
-  onCellMouseEnter: (x: number, y: number) => void;
-  onCellMouseLeave: () => void;
 }
 
 const GridCell: React.FC<GridCellProps> = ({
   x,
   y,
   isOccupied,
-  isHovered,
   onCellClick,
   onCellDoubleClick,
-  onCellMouseEnter,
-  onCellMouseLeave,
 }) => {
-  const cellKey = `${x}-${y}`;
-
   const getCellClassName = () => {
-    const baseClasses = "absolute border border-transparent transition-all duration-150";
+    const baseClasses = "absolute border border-transparent transition-all duration-150 group";
     
     if (isOccupied) {
       return `${baseClasses} bg-blue-500 bg-opacity-20 border-blue-400 pointer-events-none`;
     }
     
-    if (isHovered) {
-      return `${baseClasses} bg-yellow-500 bg-opacity-20 border-yellow-400 cursor-pointer pointer-events-auto`;
-    }
-    
-    return `${baseClasses} hover:bg-gray-600 hover:bg-opacity-30 cursor-pointer pointer-events-auto`;
+    return `${baseClasses} hover:bg-yellow-500 hover:bg-opacity-20 hover:border-yellow-400 cursor-pointer`;
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log(`GridCell click: ${x}, ${y}, occupied: ${isOccupied}`);
     if (!isOccupied) {
       onCellClick(x, y);
     }
   };
 
-  const handleDoubleClick = () => {
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!isOccupied) {
       onCellDoubleClick(x, y);
     }
   };
 
-  const handleMouseEnter = () => {
-    if (!isOccupied) {
-      onCellMouseEnter(x, y);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (!isOccupied) {
-      onCellMouseLeave();
-    }
-  };
-
   return (
     <div
-      key={cellKey}
       className={getCellClassName()}
       style={{
         left: x * GRID_CONFIG.cellSize,
@@ -73,13 +53,13 @@ const GridCell: React.FC<GridCellProps> = ({
       }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
-      {/* Plus sign for empty cells on hover */}
-      {!isOccupied && isHovered && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-4xl text-yellow-400 opacity-70 font-light">+</div>
+      {/* Plus sign for empty cells on hover - using CSS group-hover */}
+      {!isOccupied && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+          <div className="w-8 h-8 bg-yellow-400 bg-opacity-20 rounded-full flex items-center justify-center">
+            <div className="text-2xl text-yellow-400 font-bold">+</div>
+          </div>
         </div>
       )}
       
