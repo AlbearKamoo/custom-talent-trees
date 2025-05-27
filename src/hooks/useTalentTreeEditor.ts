@@ -12,6 +12,8 @@ import {
   validateTree,
   exportTreeAsJSON,
   importTreeFromJSON,
+  pixelToGrid,
+  isGridPositionOccupied,
 } from '../utils/editor-utils';
 
 export const useTalentTreeEditor = (initialTree?: TalentTree) => {
@@ -42,11 +44,18 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
 
   // Node operations
   const addNode = useCallback((position: Position, template?: NodeTemplate) => {
-    const newNode = createNode(position, template);
+    const gridPos = pixelToGrid(position);
+    
+    // Check if position is already occupied
+    if (isGridPositionOccupied(tree, gridPos)) {
+      return null;
+    }
+    
+    const newNode = createNode(gridPos, template);
     setTree(prev => addNodeToTree(prev, newNode));
     setEditorState(prev => ({ ...prev, selectedNodeId: newNode.id }));
     return newNode.id;
-  }, []);
+  }, [tree]);
 
   const deleteNode = useCallback((nodeId: string) => {
     setTree(prev => removeNodeFromTree(prev, nodeId));
@@ -61,8 +70,16 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
   }, []);
 
   const moveNodePosition = useCallback((nodeId: string, newPosition: Position) => {
-    setTree(prev => moveNode(prev, nodeId, newPosition));
-  }, []);
+    const gridPos = pixelToGrid(newPosition);
+    
+    // Check if new position is already occupied by another node
+    const existingNode = tree.nodes.find(n => n.gridX === gridPos.x && n.gridY === gridPos.y);
+    if (existingNode && existingNode.id !== nodeId) {
+      return; // Can't move to occupied position
+    }
+    
+    setTree(prev => moveNode(prev, nodeId, gridPos));
+  }, [tree]);
 
   // Connection operations
   const startConnection = useCallback((nodeId: string) => {

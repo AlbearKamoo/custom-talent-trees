@@ -3,15 +3,14 @@ export interface TalentNode {
   name: string;
   description: string;
   icon: string;
-  tier: number;
-  position: number;
   maxRanks: number;
   currentRanks: number;
   requiredPoints: number;
   prerequisites: string[];
   connections: string[];
-  x: number;
-  y: number;
+  // Grid position (0-8 for x, 0-9 for y)
+  gridX: number;
+  gridY: number;
 }
 
 export interface TalentTree {
@@ -52,11 +51,10 @@ export interface Position {
 }
 
 export interface TalentTreeConfig {
-  maxTiers: number;
-  pointsPerTier: number;
-  nodeSize: number;
-  tierSpacing: number;
-  nodeSpacing: number;
+  gridWidth: number; // 9 columns
+  gridHeight: number; // 10 rows
+  cellSize: number; // Size of each grid cell
+  nodeSize: number; // Size of nodes within cells
 }
 
 // Editor-specific types
@@ -84,8 +82,13 @@ export interface NodeTemplate {
 }
 
 export interface CreateNodeData {
-  position: Position;
+  gridPosition: GridPosition;
   template?: NodeTemplate;
+}
+
+export interface GridPosition {
+  x: number; // 0-8
+  y: number; // 0-9
 }
 
 export interface TreeMetadata {

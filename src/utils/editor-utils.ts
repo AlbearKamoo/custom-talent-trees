@@ -1,4 +1,4 @@
-import { TalentNode, TalentTree, TalentConnection, Position, NodeTemplate, TreeMetadata } from '../types/talent';
+import { TalentNode, TalentTree, TalentConnection, Position, NodeTemplate, TreeMetadata, GridPosition } from '../types/talent';
 
 export const generateNodeId = (): string => {
   return `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -21,7 +21,7 @@ export const createEmptyTree = (metadata?: Partial<TreeMetadata>): TalentTree =>
 };
 
 export const createNode = (
-  position: Position,
+  gridPosition: GridPosition,
   template?: NodeTemplate
 ): TalentNode => {
   const id = generateNodeId();
@@ -30,31 +30,20 @@ export const createNode = (
     name: template?.name || 'New Talent',
     description: template?.description || 'A new talent ability',
     icon: template?.icon || '⭐',
-    tier: calculateTierFromY(position.y),
-    position: 0, // Will be calculated based on tier
     maxRanks: template?.maxRanks || 1,
     currentRanks: 0,
     requiredPoints: template?.requiredPoints || 0,
     prerequisites: [],
     connections: [],
-    x: position.x,
-    y: position.y,
+    gridX: gridPosition.x,
+    gridY: gridPosition.y,
   };
 };
 
-export const calculateTierFromY = (y: number): number => {
-  // Assuming tiers are spaced 100px apart starting at y=100
-  return Math.max(1, Math.floor((y - 50) / 100) + 1);
-};
-
 export const addNodeToTree = (tree: TalentTree, node: TalentNode): TalentTree => {
-  // Update position within tier
-  const nodesInTier = tree.nodes.filter(n => n.tier === node.tier);
-  const updatedNode = { ...node, position: nodesInTier.length };
-  
   return {
     ...tree,
-    nodes: [...tree.nodes, updatedNode],
+    nodes: [...tree.nodes, node],
   };
 };
 
@@ -90,12 +79,10 @@ export const updateNode = (tree: TalentTree, nodeId: string, updates: Partial<Ta
   };
 };
 
-export const moveNode = (tree: TalentTree, nodeId: string, newPosition: Position): TalentTree => {
-  const newTier = calculateTierFromY(newPosition.y);
+export const moveNode = (tree: TalentTree, nodeId: string, newGridPosition: GridPosition): TalentTree => {
   return updateNode(tree, nodeId, {
-    x: newPosition.x,
-    y: newPosition.y,
-    tier: newTier,
+    gridX: newGridPosition.x,
+    gridY: newGridPosition.y,
   });
 };
 
@@ -228,6 +215,60 @@ export const importTreeFromJSON = (jsonString: string): TalentTree => {
   } catch (error) {
     throw new Error(`Failed to import tree: ${error}`);
   }
+};
+
+// Grid utility functions
+export const GRID_CONFIG = {
+  width: 9,
+  height: 10,
+  cellSize: 80,
+  nodeSize: 60,
+};
+
+export const gridToPixel = (gridPos: GridPosition): Position => {
+  return {
+    x: gridPos.x * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2,
+    y: gridPos.y * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2,
+  };
+};
+
+export const pixelToGrid = (pixelPos: Position): GridPosition => {
+  return {
+    x: Math.max(0, Math.min(GRID_CONFIG.width - 1, Math.floor(pixelPos.x / GRID_CONFIG.cellSize))),
+    y: Math.max(0, Math.min(GRID_CONFIG.height - 1, Math.floor(pixelPos.y / GRID_CONFIG.cellSize))),
+  };
+};
+
+export const isValidGridPosition = (gridPos: GridPosition): boolean => {
+  return gridPos.x >= 0 && gridPos.x < GRID_CONFIG.width && 
+         gridPos.y >= 0 && gridPos.y < GRID_CONFIG.height;
+};
+
+export const isGridPositionOccupied = (tree: TalentTree, gridPos: GridPosition): boolean => {
+  return tree.nodes.some(node => node.gridX === gridPos.x && node.gridY === gridPos.y);
+};
+
+export const getNodeAt = (tree: TalentTree, gridPos: GridPosition): TalentNode | null => {
+  return tree.nodes.find(node => node.gridX === gridPos.x && node.gridY === gridPos.y) || null;
+};
+
+export const getAdjacentPositions = (gridPos: GridPosition): GridPosition[] => {
+  const adjacent: GridPosition[] = [];
+  const directions = [
+    { x: 0, y: -1 }, // up
+    { x: 1, y: 0 },  // right
+    { x: 0, y: 1 },  // down
+    { x: -1, y: 0 }, // left
+  ];
+  
+  directions.forEach(dir => {
+    const newPos = { x: gridPos.x + dir.x, y: gridPos.y + dir.y };
+    if (isValidGridPosition(newPos)) {
+      adjacent.push(newPos);
+    }
+  });
+  
+  return adjacent;
 };
 
 export const getNodeTemplates = (): NodeTemplate[] => {

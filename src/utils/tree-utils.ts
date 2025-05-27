@@ -22,8 +22,8 @@ export const calculateTalentState = (
     return prereqNode && prereqRanks > 0;
   });
   
-  // Check if tier requirements are met
-  const tierRequirementMet = getTierSpentPoints(node.tier - 1, treeState, tree) >= node.requiredPoints;
+  // Check if point requirements are met (based on gridY position as tier)
+  const tierRequirementMet = getTierSpentPoints(node.gridY - 1, treeState, tree) >= node.requiredPoints;
   
   if (prerequisitesMet && tierRequirementMet && treeState.availablePoints > 0) {
     return TalentState.AVAILABLE;
@@ -42,7 +42,7 @@ export const getTierSpentPoints = (
   tree: TalentTree
 ): number => {
   return tree.nodes
-    .filter(node => node.tier <= tier)
+    .filter(node => node.gridY <= tier)
     .reduce((total, node) => total + (treeState.selectedNodes[node.id] || 0), 0);
 };
 

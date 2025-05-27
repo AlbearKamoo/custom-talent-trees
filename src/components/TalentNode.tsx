@@ -1,4 +1,5 @@
 import { TalentNode as TalentNodeType, TalentState, EditorMode } from '../types/talent';
+import { gridToPixel } from '../utils/editor-utils';
 
 interface TalentNodeProps {
   node: TalentNodeType;
@@ -108,8 +109,7 @@ const TalentNode: React.FC<TalentNodeProps> = ({
       
       const startX = e.clientX;
       const startY = e.clientY;
-      const startNodeX = node.x;
-      const startNodeY = node.y;
+      const startPixelPos = gridToPixel({ x: node.gridX, y: node.gridY });
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const deltaX = moveEvent.clientX - startX;
@@ -117,8 +117,8 @@ const TalentNode: React.FC<TalentNodeProps> = ({
         
         if (onDrag) {
           onDrag(node.id, {
-            x: startNodeX + deltaX,
-            y: startNodeY + deltaY,
+            x: startPixelPos.x + deltaX,
+            y: startPixelPos.y + deltaY,
           });
         }
       };
@@ -136,12 +136,14 @@ const TalentNode: React.FC<TalentNodeProps> = ({
     }
   };
 
+  const pixelPosition = gridToPixel({ x: node.gridX, y: node.gridY });
+
   return (
     <div
       className="absolute"
       style={{
-        left: `${node.x}px`,
-        top: `${node.y}px`,
+        left: `${pixelPosition.x}px`,
+        top: `${pixelPosition.y}px`,
         transform: 'translate(-50%, -50%)',
       }}
     >

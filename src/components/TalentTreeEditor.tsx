@@ -1,12 +1,14 @@
-import { useEffect } from 'react';
-import { TalentTree, EditorMode } from '../types/talent';
+import { useEffect, useState } from 'react';
+import { TalentTree, EditorMode, GridPosition } from '../types/talent';
 import { useTalentTree } from '../hooks/useTalentTree';
 import { useTalentTreeEditor } from '../hooks/useTalentTreeEditor';
 import TalentNode from './TalentNode';
 import TalentConnection from './TalentConnection';
 import EditorToolbar from './EditorToolbar';
 import NodeEditor from './NodeEditor';
+import GridCanvas from './GridCanvas';
 import { getConnectionState } from '../utils/tree-utils';
+import { GRID_CONFIG } from '../utils/editor-utils';
 
 interface TalentTreeEditorProps {
   tree: TalentTree;
@@ -101,11 +103,17 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
     reader.readAsText(file);
   };
 
-  // Calculate tree dimensions
-  const maxX = Math.max(...tree.nodes.map(node => node.x)) + 100;
-  const maxY = Math.max(...tree.nodes.map(node => node.y)) + 100;
-  const minX = Math.min(...tree.nodes.map(node => node.x)) - 100;
-  const minY = Math.min(...tree.nodes.map(node => node.y)) - 100;
+  // Grid state
+  const [hoveredCell, setHoveredCell] = useState<GridPosition | null>(null);
+  
+  // Calculate occupied cells
+  const occupiedCells = new Set(
+    tree.nodes.map(node => `${node.gridX}-${node.gridY}`)
+  );
+
+  // Grid dimensions
+  const gridWidth = GRID_CONFIG.width * GRID_CONFIG.cellSize;
+  const gridHeight = GRID_CONFIG.height * GRID_CONFIG.cellSize;
 
   // Handle keyboard shortcuts
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -177,32 +185,45 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
       )}
 
       {/* Talent Tree Canvas */}
-      <div 
-        className="flex-1 relative overflow-auto"
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          handleCanvasClick({ x, y });
-        }}
-        onDoubleClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          handleCanvasDoubleClick({ x, y });
-        }}
-      >
-        <div className="relative p-8 min-h-full">
+      <div className="flex-1 relative overflow-auto p-8">
+        <div 
+          className="relative"
+          style={{
+            width: gridWidth,
+            height: gridHeight,
+          }}
+        >
+          {/* Grid Canvas - only show in edit mode */}
+          {editorState.mode === EditorMode.EDIT && (
+            <div className="absolute inset-0 z-0">
+              <GridCanvas
+                onCellClick={(gridPos) => {
+                  const pixelPos = { 
+                    x: gridPos.x * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
+                    y: gridPos.y * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
+                  };
+                  handleCanvasClick(pixelPos);
+                }}
+                onCellDoubleClick={(gridPos) => {
+                  const pixelPos = { 
+                    x: gridPos.x * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
+                    y: gridPos.y * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
+                  };
+                  handleCanvasDoubleClick(pixelPos);
+                }}
+                hoveredCell={hoveredCell}
+                onCellHover={setHoveredCell}
+                occupiedCells={occupiedCells}
+              />
+            </div>
+          )}
+
+          {/* SVG for connections */}
           <svg
-            className="absolute inset-0 pointer-events-none"
-            width={Math.max(maxX - minX, 800)}
-            height={Math.max(maxY - minY, 600)}
-            style={{
-              left: minX,
-              top: minY,
-            }}
+            className="absolute inset-0 pointer-events-none z-10"
+            width={gridWidth}
+            height={gridHeight}
           >
-            {/* Render connections */}
             {tree.connections.map((connection) => {
               const fromNode = tree.nodes.find(n => n.id === connection.from);
               const toNode = tree.nodes.find(n => n.id === connection.to);
@@ -224,16 +245,8 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
             })}
           </svg>
 
-          {/* Render talent nodes */}
-          <div
-            className="relative"
-            style={{
-              width: Math.max(maxX - minX, 800),
-              height: Math.max(maxY - minY, 600),
-              left: -minX,
-              top: -minY,
-            }}
-          >
+          {/* Talent nodes */}
+          <div className="absolute inset-0 z-20">
             {tree.nodes.map((node) => (
               <TalentNode
                 key={node.id}
