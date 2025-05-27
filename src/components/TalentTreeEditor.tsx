@@ -1,0 +1,288 @@
+import { useEffect } from 'react';
+import { TalentTree, EditorMode } from '../types/talent';
+import { useTalentTree } from '../hooks/useTalentTree';
+import { useTalentTreeEditor } from '../hooks/useTalentTreeEditor';
+import TalentNode from './TalentNode';
+import TalentConnection from './TalentConnection';
+import EditorToolbar from './EditorToolbar';
+import NodeEditor from './NodeEditor';
+import { getConnectionState } from '../utils/tree-utils';
+
+interface TalentTreeEditorProps {
+  tree: TalentTree;
+  initialPoints?: number;
+}
+
+const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
+  tree: initialTree,
+  initialPoints = 51,
+}) => {
+  // Editor functionality
+  const {
+    tree,
+    editorState,
+    createNewTree,
+    deleteNode,
+    updateNodeData,
+    moveNodePosition,
+    startConnection,
+    completeConnection,
+    cancelConnection,
+    setMode,
+    selectNode,
+    showNodeEditor,
+    showTreeEditor,
+    startDrag,
+    endDrag,
+    getValidationErrors,
+    exportTree: exportEditorTree,
+    importTree: importEditorTree,
+    handleCanvasClick,
+    handleCanvasDoubleClick,
+  } = useTalentTreeEditor(initialTree);
+
+  // Simulation functionality (only used in simulate mode)
+  const {
+    treeState,
+    nodeStates,
+    handleNodeClick,
+    handleNodeHover,
+    resetTreeState,
+    exportTree: exportSimulationTree,
+    importTree: importSimulationTree,
+  } = useTalentTree(tree, initialPoints);
+
+  const handleExport = () => {
+    if (editorState.mode === EditorMode.EDIT) {
+      // Export tree structure
+      const exportedData = exportEditorTree();
+      const dataBlob = new Blob([exportedData], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${tree.name}-talent-tree.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } else {
+      // Export talent build
+      const exportedData = exportSimulationTree();
+      const dataStr = JSON.stringify(exportedData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${tree.name}-talent-build.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleImportFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        if (editorState.mode === EditorMode.EDIT) {
+          // Import tree structure
+          const success = importEditorTree(content);
+          if (!success) {
+            alert('Failed to import tree structure');
+          }
+        } else {
+          // Import talent build
+          const importedData = JSON.parse(content);
+          importSimulationTree(importedData);
+        }
+      } catch (error) {
+        console.error('Failed to import:', error);
+        alert('Invalid file format');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Calculate tree dimensions
+  const maxX = Math.max(...tree.nodes.map(node => node.x)) + 100;
+  const maxY = Math.max(...tree.nodes.map(node => node.y)) + 100;
+  const minX = Math.min(...tree.nodes.map(node => node.x)) - 100;
+  const minY = Math.min(...tree.nodes.map(node => node.y)) - 100;
+
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (editorState.mode === EditorMode.EDIT) {
+      if (e.key === 'Delete' && editorState.selectedNodeId) {
+        deleteNode(editorState.selectedNodeId);
+      }
+      if (e.key === 'Escape') {
+        if (editorState.isConnecting) {
+          cancelConnection();
+        } else {
+          selectNode(null);
+        }
+      }
+    }
+  };
+
+  // Add keyboard event listener
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [editorState.mode, editorState.selectedNodeId, editorState.isConnecting]);
+
+  const selectedNode = editorState.selectedNodeId 
+    ? tree.nodes.find(n => n.id === editorState.selectedNodeId) || null
+    : null;
+
+  return (
+    <div className="w-full h-screen bg-talent-background overflow-hidden flex flex-col">
+      {/* Toolbar */}
+      <EditorToolbar
+        mode={editorState.mode}
+        onModeChange={setMode}
+        onNewTree={() => createNewTree()}
+        onExport={handleExport}
+        onImport={handleImportFile}
+        onShowTreeEditor={() => showTreeEditor(true)}
+        isConnecting={editorState.isConnecting}
+        onCancelConnection={cancelConnection}
+        validationErrors={getValidationErrors()}
+      />
+
+      {/* Header - only show in simulate mode */}
+      {editorState.mode === EditorMode.SIMULATE && (
+        <div className="bg-gray-900 border-b border-gray-700 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-yellow-400">{tree.name}</h1>
+              <p className="text-gray-300">{tree.description}</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <div className="text-lg font-semibold text-green-400">
+                  Available Points: {treeState.availablePoints}
+                </div>
+                <div className="text-sm text-gray-400">
+                  Spent: {treeState.spentPoints} / {treeState.availablePoints + treeState.spentPoints}
+                </div>
+              </div>
+              <button
+                onClick={resetTreeState}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+              >
+                Reset Points
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Talent Tree Canvas */}
+      <div 
+        className="flex-1 relative overflow-auto"
+        onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          handleCanvasClick({ x, y });
+        }}
+        onDoubleClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          handleCanvasDoubleClick({ x, y });
+        }}
+      >
+        <div className="relative p-8 min-h-full">
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            width={Math.max(maxX - minX, 800)}
+            height={Math.max(maxY - minY, 600)}
+            style={{
+              left: minX,
+              top: minY,
+            }}
+          >
+            {/* Render connections */}
+            {tree.connections.map((connection) => {
+              const fromNode = tree.nodes.find(n => n.id === connection.from);
+              const toNode = tree.nodes.find(n => n.id === connection.to);
+              
+              if (!fromNode || !toNode) return null;
+              
+              const isActive = editorState.mode === EditorMode.SIMULATE 
+                ? getConnectionState(connection, treeState)
+                : true;
+              
+              return (
+                <TalentConnection
+                  key={connection.id}
+                  fromNode={fromNode}
+                  toNode={toNode}
+                  isActive={isActive}
+                />
+              );
+            })}
+          </svg>
+
+          {/* Render talent nodes */}
+          <div
+            className="relative"
+            style={{
+              width: Math.max(maxX - minX, 800),
+              height: Math.max(maxY - minY, 600),
+              left: -minX,
+              top: -minY,
+            }}
+          >
+            {tree.nodes.map((node) => (
+              <TalentNode
+                key={node.id}
+                node={node}
+                state={editorState.mode === EditorMode.SIMULATE ? nodeStates[node.id] : 'unlocked' as any}
+                currentRanks={editorState.mode === EditorMode.SIMULATE ? (treeState.selectedNodes[node.id] || 0) : 0}
+                onClick={editorState.mode === EditorMode.SIMULATE ? handleNodeClick : () => selectNode(node.id)}
+                onHover={editorState.mode === EditorMode.SIMULATE ? handleNodeHover : () => {}}
+                isHovered={editorState.mode === EditorMode.SIMULATE ? treeState.hoveredNode === node.id : false}
+                editorMode={editorState.mode}
+                isSelected={editorState.selectedNodeId === node.id}
+                isConnecting={editorState.isConnecting}
+                onStartConnection={startConnection}
+                onCompleteConnection={completeConnection}
+                onStartDrag={startDrag}
+                onDrag={moveNodePosition}
+                onEndDrag={endDrag}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Node Editor Modal */}
+      <NodeEditor
+        node={selectedNode}
+        isOpen={editorState.showNodeEditor || (editorState.mode === EditorMode.EDIT && !!selectedNode)}
+        onClose={() => {
+          showNodeEditor(false);
+          selectNode(null);
+        }}
+        onSave={updateNodeData}
+        onDelete={deleteNode}
+      />
+
+      {/* Instructions - only show in simulate mode */}
+      {editorState.mode === EditorMode.SIMULATE && (
+        <div className="fixed bottom-4 right-4 bg-gray-900 border border-gray-600 rounded-lg p-4 max-w-sm">
+          <h3 className="font-bold text-yellow-400 mb-2">Instructions</h3>
+          <ul className="text-sm text-gray-300 space-y-1">
+            <li>• Left click to allocate points</li>
+            <li>• Right click to deallocate points</li>
+            <li>• Hover for talent details</li>
+            <li>• Export/Import builds as JSON</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TalentTreeEditor; 
