@@ -77,7 +77,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
               </div>
             ) : (
               <div className="text-sm text-gray-400">
-                💡 Double-click to add node • Click node + Shift+Click to connect
+                💡 Click empty cell to add node • Click node + Shift+Click to connect
               </div>
             )}
           </div>
@@ -135,7 +135,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
         <div className="mt-3 p-3 bg-blue-900 bg-opacity-30 border border-blue-600 rounded">
           <div className="text-blue-400 font-medium mb-1">📖 Editor Instructions:</div>
           <div className="text-blue-300 text-sm grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div>• Double-click canvas to create node</div>
+            <div>• Click empty cell to create node</div>
             <div>• Click node to select/edit</div>
             <div>• Drag nodes to move them</div>
             <div>• Hold Shift + click two nodes to connect</div>

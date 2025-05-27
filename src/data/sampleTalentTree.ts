@@ -7,7 +7,7 @@ export const sampleBloodDeathKnightTree: TalentTree = {
   totalPoints: 51,
   spentPoints: 0,
   nodes: [
-    // Row 0 (Top tier)
+    // Row 0 (Top tier) - Entry talents
     {
       id: 'improved-blood-tap',
       name: 'Improved Blood Tap',
@@ -17,7 +17,7 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       currentRanks: 0,
       requiredPoints: 0,
       prerequisites: [],
-      connections: ['butchery'],
+      connections: ['rune-tap'],
       gridX: 1,
       gridY: 0,
     },
@@ -30,7 +30,7 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       currentRanks: 0,
       requiredPoints: 0,
       prerequisites: [],
-      connections: ['subversion'],
+      connections: ['rune-tap', 'blood-presence'],
       gridX: 3,
       gridY: 0,
     },
@@ -43,7 +43,7 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       currentRanks: 0,
       requiredPoints: 0,
       prerequisites: [],
-      connections: ['blade-barrier'],
+      connections: ['blood-presence'],
       gridX: 5,
       gridY: 0,
     },
@@ -61,7 +61,33 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       gridY: 0,
     },
 
-    // Row 2
+    // Row 2 - Second tier
+    {
+      id: 'rune-tap',
+      name: 'Rune Tap',
+      description: 'Instantly heals you for 10% of your maximum health.',
+      icon: '🔮',
+      maxRanks: 1,
+      currentRanks: 0,
+      requiredPoints: 5,
+      prerequisites: ['improved-blood-tap', 'butchery'],
+      connections: ['dark-conviction'],
+      gridX: 2,
+      gridY: 2,
+    },
+    {
+      id: 'blood-presence',
+      name: 'Blood Presence',
+      description: 'Increases stamina by 15% and reduces damage taken by 8%.',
+      icon: '🛡️',
+      maxRanks: 1,
+      currentRanks: 0,
+      requiredPoints: 5,
+      prerequisites: ['butchery', 'subversion'],
+      connections: ['dark-conviction', 'vampiric-blood'],
+      gridX: 4,
+      gridY: 2,
+    },
     {
       id: 'scent-of-blood',
       name: 'Scent of Blood',
@@ -72,24 +98,11 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       requiredPoints: 5,
       prerequisites: ['blade-barrier'],
       connections: ['vampiric-blood'],
-      gridX: 7,
-      gridY: 2,
-    },
-    {
-      id: 'rune-tap',
-      name: 'Rune Tap',
-      description: 'Instantly heals you for 10% of your maximum health.',
-      icon: '🔮',
-      maxRanks: 1,
-      currentRanks: 0,
-      requiredPoints: 5,
-      prerequisites: ['butchery'],
-      connections: ['dark-conviction'],
-      gridX: 3,
+      gridX: 6,
       gridY: 2,
     },
 
-    // Row 4
+    // Row 4 - Third tier
     {
       id: 'dark-conviction',
       name: 'Dark Conviction',
@@ -98,7 +111,7 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       maxRanks: 5,
       currentRanks: 0,
       requiredPoints: 10,
-      prerequisites: ['rune-tap'],
+      prerequisites: ['rune-tap', 'blood-presence'],
       connections: ['vampiric-blood'],
       gridX: 3,
       gridY: 4,
@@ -111,7 +124,7 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       maxRanks: 1,
       currentRanks: 0,
       requiredPoints: 15,
-      prerequisites: ['scent-of-blood', 'dark-conviction'],
+      prerequisites: ['blood-presence', 'scent-of-blood', 'dark-conviction'],
       connections: ['heart-strike'],
       gridX: 5,
       gridY: 6,
@@ -133,14 +146,23 @@ export const sampleBloodDeathKnightTree: TalentTree = {
     },
   ],
   connections: [
-    { id: 'conn1', from: 'improved-blood-tap', to: 'butchery', isActive: false },
-    { id: 'conn2', from: 'butchery', to: 'subversion', isActive: false },
-    { id: 'conn3', from: 'subversion', to: 'blade-barrier', isActive: false },
-    { id: 'conn4', from: 'blade-barrier', to: 'scent-of-blood', isActive: false },
-    { id: 'conn5', from: 'butchery', to: 'rune-tap', isActive: false },
+    // Tier 0 to Tier 2 connections
+    { id: 'conn1', from: 'improved-blood-tap', to: 'rune-tap', isActive: false },
+    { id: 'conn2', from: 'butchery', to: 'rune-tap', isActive: false },
+    { id: 'conn3', from: 'butchery', to: 'blood-presence', isActive: false },
+    { id: 'conn4', from: 'subversion', to: 'blood-presence', isActive: false },
+    { id: 'conn5', from: 'blade-barrier', to: 'scent-of-blood', isActive: false },
+    
+    // Tier 2 to Tier 4 connections
     { id: 'conn6', from: 'rune-tap', to: 'dark-conviction', isActive: false },
-    { id: 'conn7', from: 'scent-of-blood', to: 'vampiric-blood', isActive: false },
-    { id: 'conn8', from: 'dark-conviction', to: 'vampiric-blood', isActive: false },
-    { id: 'conn9', from: 'vampiric-blood', to: 'heart-strike', isActive: false },
+    { id: 'conn7', from: 'blood-presence', to: 'dark-conviction', isActive: false },
+    { id: 'conn8', from: 'blood-presence', to: 'vampiric-blood', isActive: false },
+    { id: 'conn9', from: 'scent-of-blood', to: 'vampiric-blood', isActive: false },
+    
+    // Tier 4 to Tier 6 connections
+    { id: 'conn10', from: 'dark-conviction', to: 'vampiric-blood', isActive: false },
+    
+    // Tier 6 to Tier 8 connections
+    { id: 'conn11', from: 'vampiric-blood', to: 'heart-strike', isActive: false },
   ],
 }; 

@@ -202,14 +202,14 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
                     x: gridPos.x * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
                     y: gridPos.y * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
                   };
-                  handleCanvasClick(pixelPos);
+                  handleCanvasDoubleClick(pixelPos); // Create node on single click
                 }}
                 onCellDoubleClick={(gridPos) => {
                   const pixelPos = { 
                     x: gridPos.x * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
                     y: gridPos.y * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
                   };
-                  handleCanvasDoubleClick(pixelPos);
+                  handleCanvasDoubleClick(pixelPos); // Keep double click for consistency
                 }}
                 hoveredCell={hoveredCell}
                 onCellHover={setHoveredCell}

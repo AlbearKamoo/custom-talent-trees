@@ -109,6 +109,20 @@ export const addConnectionToTree = (
   if (connectionExists) {
     return tree;
   }
+
+  // Find the nodes to validate same-tier restriction
+  const fromNode = tree.nodes.find(n => n.id === fromNodeId);
+  const toNode = tree.nodes.find(n => n.id === toNodeId);
+  
+  if (!fromNode || !toNode) {
+    return tree; // Invalid nodes
+  }
+
+  // Prevent connections between nodes of the same tier (same gridY)
+  if (fromNode.gridY === toNode.gridY) {
+    console.warn(`Cannot create connection between nodes of the same tier (row ${fromNode.gridY})`);
+    return tree;
+  }
   
   const newConnection = createConnection(fromNodeId, toNodeId);
   
@@ -165,6 +179,16 @@ export const validateTree = (tree: TalentTree): string[] => {
     
     if (!fromExists || !toExists) {
       errors.push(`Invalid connection: ${connection.id}`);
+    }
+  });
+
+  // Check for same-tier connections
+  tree.connections.forEach(connection => {
+    const fromNode = tree.nodes.find(n => n.id === connection.from);
+    const toNode = tree.nodes.find(n => n.id === connection.to);
+    
+    if (fromNode && toNode && fromNode.gridY === toNode.gridY) {
+      errors.push(`Invalid same-tier connection between "${fromNode.name}" and "${toNode.name}" (row ${fromNode.gridY})`);
     }
   });
   
