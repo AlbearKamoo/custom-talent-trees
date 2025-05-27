@@ -10,6 +10,7 @@ interface EditorToolbarProps {
   isConnecting: boolean;
   onCancelConnection: () => void;
   validationErrors: string[];
+  isShiftHeld?: boolean;
 }
 
 const EditorToolbar: React.FC<EditorToolbarProps> = ({
@@ -22,6 +23,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
   isConnecting,
   onCancelConnection,
   validationErrors,
+  isShiftHeld = false,
 }) => {
   const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -77,7 +79,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
               </div>
             ) : (
               <div className="text-sm text-gray-400">
-                💡 Click empty cell to add node • Click node + Shift+Click to connect
+                💡 Click empty cell to add node • Shift+Click nodes to connect • Hold Shift+Click connection to delete
               </div>
             )}
           </div>
@@ -139,7 +141,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
             <div>• Click node to select/edit</div>
             <div>• Drag nodes to move them</div>
             <div>• Hold Shift + click two nodes to connect</div>
-            <div>• Right-click connection to delete</div>
+            <div>• Hold Shift + click connection to delete</div>
             <div>• Delete key removes selected node</div>
           </div>
         </div>

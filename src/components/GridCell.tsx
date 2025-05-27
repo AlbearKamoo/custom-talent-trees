@@ -6,6 +6,7 @@ interface GridCellProps {
   isOccupied: boolean;
   onCellClick: (x: number, y: number) => void;
   onCellDoubleClick: (x: number, y: number) => void;
+  isShiftHeld?: boolean;
 }
 
 const GridCell: React.FC<GridCellProps> = ({
@@ -14,12 +15,18 @@ const GridCell: React.FC<GridCellProps> = ({
   isOccupied,
   onCellClick,
   onCellDoubleClick,
+  isShiftHeld = false,
 }) => {
   const getCellClassName = () => {
     const baseClasses = "absolute border border-transparent transition-all duration-150 group";
     
     if (isOccupied) {
       return `${baseClasses} bg-blue-500 bg-opacity-20 border-blue-400 pointer-events-none`;
+    }
+    
+    // Disable pointer events when shift is held to allow clicks to pass through to connections
+    if (isShiftHeld) {
+      return `${baseClasses} pointer-events-none`;
     }
     
     return `${baseClasses} hover:bg-yellow-500 hover:bg-opacity-20 hover:border-yellow-400 cursor-pointer`;

@@ -44,6 +44,8 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
     startNodeCreation,
     createPendingNode,
     cancelNodeCreation,
+    deleteConnection,
+    setShiftHeld,
   } = useTalentTreeEditor(initialTree);
 
   // Simulation functionality (only used in simulate mode)
@@ -130,13 +132,26 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
           selectNode(null);
         }
       }
+      if (e.key === 'Shift') {
+        setShiftHeld(true);
+      }
     }
   };
 
-  // Add keyboard event listener
+  const handleKeyUp = (e: KeyboardEvent) => {
+    if (e.key === 'Shift') {
+      setShiftHeld(false);
+    }
+  };
+
+  // Add keyboard event listeners
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
   }, [editorState.mode, editorState.selectedNodeId, editorState.isConnecting]);
 
   const selectedNode = editorState.selectedNodeId 
@@ -226,7 +241,7 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
 
           {/* SVG for connections */}
           <svg
-            className="absolute inset-0 pointer-events-none z-10"
+            className={`absolute inset-0 ${editorState.isShiftHeld ? 'z-30' : 'pointer-events-none z-10'}`}
             width={gridWidth}
             height={gridHeight}
           >
@@ -246,6 +261,14 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
                   fromNode={fromNode}
                   toNode={toNode}
                   isActive={isActive}
+                  editorMode={editorState.mode}
+                  connectionId={connection.id}
+                  isShiftHeld={editorState.isShiftHeld}
+                  onConnectionClick={(connectionId) => {
+                    if (window.confirm('Are you sure you want to delete this connection?')) {
+                      deleteConnection(connectionId);
+                    }
+                  }}
                 />
               );
             })}
@@ -269,6 +292,7 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
                       x={x}
                       y={y}
                       isOccupied={false}
+                      isShiftHeld={editorState.isShiftHeld}
                       onCellClick={(cellX: number, cellY: number) => {
                         const pixelPos = { 
                           x: cellX * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 

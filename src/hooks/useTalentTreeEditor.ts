@@ -30,6 +30,7 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
     showNodeEditor: false,
     showTreeEditor: false,
     pendingNodePosition: null,
+    isShiftHeld: false,
   });
 
   // Tree operations
@@ -223,6 +224,11 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
     }));
   }, []);
 
+  // Shift key tracking for connection deletion
+  const setShiftHeld = useCallback((isHeld: boolean) => {
+    setEditorState(prev => ({ ...prev, isShiftHeld: isHeld }));
+  }, []);
+
   return {
     // State
     tree,
@@ -265,5 +271,6 @@ export const useTalentTreeEditor = (initialTree?: TalentTree) => {
     startNodeCreation,
     createPendingNode,
     cancelNodeCreation,
+    setShiftHeld,
   };
 }; 

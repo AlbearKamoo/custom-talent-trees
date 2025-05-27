@@ -1,24 +1,47 @@
-import { TalentNode } from '../types/talent';
+import { TalentNode, EditorMode } from '../types/talent';
 import { gridToPixel } from '../utils/editor-utils';
 
 interface TalentConnectionProps {
   fromNode: TalentNode;
   toNode: TalentNode;
   isActive: boolean;
+  editorMode?: EditorMode;
+  connectionId?: string;
+  onConnectionClick?: (connectionId: string) => void;
+  isShiftHeld?: boolean;
 }
 
 const TalentConnection: React.FC<TalentConnectionProps> = ({
   fromNode,
   toNode,
   isActive,
+  editorMode = EditorMode.SIMULATE,
+  connectionId,
+  onConnectionClick,
+  isShiftHeld = false,
 }) => {
   const fromPixel = gridToPixel({ x: fromNode.gridX, y: fromNode.gridY });
   const toPixel = gridToPixel({ x: toNode.gridX, y: toNode.gridY });
 
   const getConnectionStyles = () => {
-    return isActive 
+    const baseStyles = isActive 
       ? "stroke-talent-connectionActive stroke-2 drop-shadow-sm"
       : "stroke-talent-connection stroke-1 opacity-60";
+    
+    // Add interactive styles only when shift is held in edit mode
+    if (editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isShiftHeld) {
+      return `${baseStyles} cursor-pointer hover:stroke-red-400 hover:stroke-3 transition-all duration-150`;
+    }
+    
+    return baseStyles;
+  };
+
+  const handleConnectionClick = (e: React.MouseEvent) => {
+    if (editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isShiftHeld) {
+      e.preventDefault();
+      e.stopPropagation();
+      onConnectionClick(connectionId);
+    }
   };
 
   // Calculate the direction vector and normalize it
@@ -55,6 +78,22 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
         </marker>
       </defs>
       
+      {/* Invisible wider line for easier clicking when shift is held */}
+      {editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isShiftHeld && (
+        <line
+          x1={fromPixel.x}
+          y1={fromPixel.y}
+          x2={adjustedToX}
+          y2={adjustedToY}
+          stroke="transparent"
+          strokeWidth="12"
+          strokeLinecap="round"
+          style={{ cursor: 'pointer' }}
+          onClick={handleConnectionClick}
+        />
+      )}
+      
+      {/* Visible connection line */}
       <line
         x1={fromPixel.x}
         y1={fromPixel.y}
@@ -63,6 +102,8 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
         className={getConnectionStyles()}
         strokeLinecap="round"
         markerEnd={`url(#${markerId})`}
+        onClick={editorMode === EditorMode.EDIT && isShiftHeld ? handleConnectionClick : undefined}
+        style={editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isShiftHeld ? { pointerEvents: 'all' } : undefined}
       />
     </g>
   );
