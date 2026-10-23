@@ -1,5 +1,6 @@
 import { TalentNode as TalentNodeType, TalentState, EditorMode } from '../types/talent';
 import { gridToPixel } from '../utils/editor-utils';
+import TalentIcon from './TalentIcon';
 
 interface TalentNodeProps {
   node: TalentNodeType;
@@ -148,6 +149,8 @@ const TalentNode: React.FC<TalentNodeProps> = ({
       }}
     >
       <div
+        role="button"
+        aria-label={node.name}
         className={getNodeStyles()}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
@@ -156,10 +159,7 @@ const TalentNode: React.FC<TalentNodeProps> = ({
         onMouseDown={handleMouseDown}
         title={`${node.name} (${currentRanks}/${node.maxRanks})`}
       >
-        {/* Icon placeholder - in a real app, you'd use actual icons */}
-        <div className="w-8 h-8 bg-gray-600 rounded flex items-center justify-center text-xs font-bold">
-          {node.icon || node.name.charAt(0)}
-        </div>
+        <TalentIcon icon={node.icon} name={node.name} size={32} />
         
         {/* Rank indicator */}
         {node.maxRanks > 1 && (

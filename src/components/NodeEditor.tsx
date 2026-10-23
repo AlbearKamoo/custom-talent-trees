@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { TalentNode } from '../types/talent';
+import { isCatalogIcon } from '../lib/icons';
+import IconPicker from './IconPicker';
+import TalentIcon from './TalentIcon';
 
 interface NodeEditorProps {
   node: TalentNode | null;
@@ -27,6 +30,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     maxRanks: 1,
     requiredPoints: 0,
   });
+  const [pickingIcon, setPickingIcon] = useState(false);
 
   useEffect(() => {
     if (node) {
@@ -66,8 +70,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       onClose();
     }
   };
-
-  const iconOptions = ['⚔️', '🛡️', '💥', '⭐', '🔥', '❄️', '⚡', '🌟', '💎', '🎯', '🏹', '🗡️'];
 
   if (!isOpen || (!node && !isCreatingNew)) return null;
 
@@ -117,29 +119,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Icon
             </label>
-            <div className="grid grid-cols-6 gap-2 mb-2">
-              {iconOptions.map((icon) => (
-                <button
-                  key={icon}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, icon }))}
-                  className={`p-2 text-xl border rounded ${
-                    formData.icon === icon
-                      ? 'border-yellow-500 bg-yellow-500 bg-opacity-20'
-                      : 'border-gray-600 hover:border-gray-500'
-                  }`}
-                >
-                  {icon}
-                </button>
-              ))}
+            <div className="flex items-center gap-3">
+              <TalentIcon icon={formData.icon} name={formData.name} size={48} />
+              <button
+                type="button"
+                onClick={() => setPickingIcon(true)}
+                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white hover:border-yellow-500"
+              >
+                Choose icon
+              </button>
             </div>
-            <input
-              type="text"
-              value={formData.icon}
-              onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-              placeholder="Or enter custom icon/emoji"
-            />
+            <p className="mt-1 truncate text-xs text-gray-400">
+              {isCatalogIcon(formData.icon) ? formData.icon : 'No catalog icon selected'}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -201,6 +193,16 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           </div>
         </form>
       </div>
+      {pickingIcon && (
+        <IconPicker
+          value={formData.icon}
+          onSelect={(icon) => {
+            setFormData((prev) => ({ ...prev, icon }));
+            setPickingIcon(false);
+          }}
+          onClose={() => setPickingIcon(false)}
+        />
+      )}
     </div>
   );
 };
