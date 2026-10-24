@@ -2,6 +2,15 @@ import { TalentNode as TalentNodeType, TalentState, EditorMode, GridConfig } fro
 import { gridToPixel } from '../utils/editor-utils';
 import TalentIcon from './TalentIcon';
 
+const NODE_CLIP =
+  'polygon(12.5% 0, 87.5% 0, 100% 12.5%, 100% 87.5%, 87.5% 100%, 12.5% 100%, 0 87.5%, 0 12.5%)';
+
+const FRAME = {
+  green: '/talent-nodes/square-green.webp',
+  yellow: '/talent-nodes/square-yellow.webp',
+  gray: '/talent-nodes/square-gray.webp',
+} as const;
+
 interface TalentNodeProps {
   node: TalentNodeType;
   state: TalentState;
@@ -37,38 +46,18 @@ const TalentNode: React.FC<TalentNodeProps> = ({
   onDrag,
   onEndDrag,
 }) => {
-  const getNodeStyles = () => {
-    const baseStyles = "relative w-12 h-12 rounded-lg border-2 cursor-pointer transition-all duration-200 flex items-center justify-center";
-
+  const frameSrc = (() => {
     if (editorMode === EditorMode.EDIT) {
-      let editStyles = `${baseStyles} bg-gray-700 border-gray-500 hover:border-yellow-500`;
-
-      if (isSelected) {
-        editStyles += " border-yellow-500 shadow-talent";
-      }
-
-      if (isConnecting) {
-        editStyles += " border-blue-500 shadow-lg";
-      }
-
-      return editStyles;
+      if (isConnecting) return FRAME.yellow;
+      if (isSelected) return FRAME.yellow;
+      return FRAME.gray;
     }
+    if (state === TalentState.SELECTED || state === TalentState.MAXED) return FRAME.yellow;
+    if (state === TalentState.AVAILABLE || state === TalentState.UNLOCKED) return FRAME.green;
+    return FRAME.gray;
+  })();
 
-    switch (state) {
-      case TalentState.LOCKED:
-        return `${baseStyles} bg-talent-locked border-talent-border opacity-50`;
-      case TalentState.AVAILABLE:
-        return `${baseStyles} bg-talent-available border-talent-available shadow-talent hover:shadow-talent-hover`;
-      case TalentState.UNLOCKED:
-        return `${baseStyles} bg-talent-unlocked border-talent-unlocked`;
-      case TalentState.SELECTED:
-        return `${baseStyles} bg-talent-selected border-talent-selected shadow-talent`;
-      case TalentState.MAXED:
-        return `${baseStyles} bg-talent-selected border-talent-selected shadow-talent-hover`;
-      default:
-        return `${baseStyles} bg-talent-locked border-talent-border`;
-    }
-  };
+  const locked = editorMode !== EditorMode.EDIT && state === TalentState.LOCKED;
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -149,7 +138,7 @@ const TalentNode: React.FC<TalentNodeProps> = ({
       <div
         role="button"
         aria-label={node.name}
-        className={getNodeStyles()}
+        className="relative h-12 w-12 cursor-pointer"
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         onMouseEnter={handleMouseEnter}
@@ -157,7 +146,18 @@ const TalentNode: React.FC<TalentNodeProps> = ({
         onMouseDown={handleMouseDown}
         title={`${node.name} (${currentRanks}/${node.maxRanks})`}
       >
-        <TalentIcon icon={node.icon} name={node.name} size={32} />
+        <div
+          className={`absolute inset-[3px] overflow-hidden bg-black ${locked ? 'grayscale opacity-70' : ''}`}
+          style={{ clipPath: NODE_CLIP }}
+        >
+          <TalentIcon icon={node.icon} name={node.name} size={42} className="rounded-none h-full w-full object-cover" />
+        </div>
+        <img
+          src={frameSrc}
+          alt=""
+          draggable={false}
+          className="pointer-events-none absolute inset-0 h-full w-full"
+        />
 
         {editorMode !== EditorMode.EDIT && node.maxRanks > 1 && (
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center text-xs font-bold text-black">
