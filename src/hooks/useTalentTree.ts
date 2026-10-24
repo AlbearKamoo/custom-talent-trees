@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { TalentTree, TalentTreeState, TalentNode, TalentState } from '../types/talent';
 import {
   calculateTalentState,
@@ -9,19 +9,27 @@ import {
   importTreeState,
   canAllocatePoint,
   canDeallocatePoint,
+  treeCapacity,
 } from '../utils/tree-utils';
 
-export const useTalentTree = (tree: TalentTree, initialPoints: number = 51) => {
-  const [treeState, setTreeState] = useState<TalentTreeState>(() => 
-    resetTree(initialPoints)
+export const useTalentTree = (tree: TalentTree) => {
+  const capacity = treeCapacity(tree);
+
+  const [treeState, setTreeState] = useState<TalentTreeState>(() =>
+    resetTree(capacity)
   );
+
+  useEffect(() => {
+    setTreeState(prev => ({
+      ...prev,
+      availablePoints: Math.max(0, capacity - prev.spentPoints),
+    }));
+  }, [capacity]);
 
   const handleNodeClick = useCallback((nodeId: string, isRightClick: boolean = false) => {
     if (isRightClick) {
-      // Right click to deallocate
       setTreeState(prevState => deallocatePoint(nodeId, prevState, tree));
     } else {
-      // Left click to allocate
       setTreeState(prevState => allocatePoint(nodeId, prevState, tree));
     }
   }, [tree]);
@@ -34,16 +42,16 @@ export const useTalentTree = (tree: TalentTree, initialPoints: number = 51) => {
   }, []);
 
   const resetTreeState = useCallback(() => {
-    setTreeState(resetTree(initialPoints));
-  }, [initialPoints]);
+    setTreeState(resetTree(capacity));
+  }, [capacity]);
 
   const exportTree = useCallback(() => {
     return exportTreeState(treeState, tree);
   }, [treeState, tree]);
 
-  const importTree = useCallback((exportedState: any) => {
-    setTreeState(importTreeState(exportedState, tree, initialPoints));
-  }, [tree, initialPoints]);
+  const importTree = useCallback((exportedState: { selectedNodes?: Record<string, number> }) => {
+    setTreeState(importTreeState(exportedState, tree, capacity));
+  }, [tree, capacity]);
 
   const getNodeState = useCallback((node: TalentNode): TalentState => {
     return calculateTalentState(node, treeState, tree);
@@ -68,6 +76,7 @@ export const useTalentTree = (tree: TalentTree, initialPoints: number = 51) => {
   return {
     treeState,
     nodeStates,
+    capacity,
     handleNodeClick,
     handleNodeHover,
     resetTreeState,
@@ -77,4 +86,4 @@ export const useTalentTree = (tree: TalentTree, initialPoints: number = 51) => {
     canAllocate,
     canDeallocate,
   };
-}; 
+};

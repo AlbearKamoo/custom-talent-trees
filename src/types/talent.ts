@@ -1,3 +1,13 @@
+export type GridFormat = 'compact' | 'large';
+
+export interface GridConfig {
+  width: number;
+  height: number;
+  cellSize: number;
+  nodeSize: number;
+  maxTrees: number;
+}
+
 export interface TalentNode {
   id: string;
   name: string;
@@ -8,7 +18,7 @@ export interface TalentNode {
   requiredPoints: number;
   prerequisites: string[];
   connections: string[];
-  // Grid position (0-8 for x, 0-9 for y)
+  // Grid position is format-aware (compact: 0–3 x, 0–6 y; large: 0–8 x, 0–9 y)
   gridX: number;
   gridY: number;
 }
@@ -17,10 +27,17 @@ export interface TalentTree {
   id: string;
   name: string;
   description: string;
-  totalPoints: number;
-  spentPoints: number;
+  icon: string;
+  backgroundImage?: string;
   nodes: TalentNode[];
   connections: TalentConnection[];
+}
+
+export interface TalentGroup {
+  id: string;
+  name: string;
+  format: GridFormat;
+  trees: TalentTree[];
 }
 
 export interface TalentConnection {
@@ -51,28 +68,29 @@ export interface Position {
 }
 
 export interface TalentTreeConfig {
-  gridWidth: number; // 9 columns
-  gridHeight: number; // 10 rows
-  cellSize: number; // Size of each grid cell
-  nodeSize: number; // Size of nodes within cells
+  gridWidth: number;
+  gridHeight: number;
+  cellSize: number;
+  nodeSize: number;
 }
 
-// Editor-specific types
 export enum EditorMode {
-  SIMULATE = 'simulate',
+  EXPLORER = 'explorer',
   EDIT = 'edit'
 }
 
 export interface EditorState {
   mode: EditorMode;
+  selectedTreeId: string | null;
   selectedNodeId: string | null;
   isConnecting: boolean;
   connectionStart: string | null;
   draggedNode: string | null;
   showNodeEditor: boolean;
   showTreeEditor: boolean;
-  pendingNodePosition: GridPosition | null; // For creating new nodes
-  isCtrlHeld: boolean; // For connection deletion mode
+  showNewGroup: boolean;
+  pendingNodePosition: GridPosition | null;
+  isCtrlHeld: boolean;
 }
 
 export interface NodeTemplate {
@@ -89,16 +107,18 @@ export interface CreateNodeData {
 }
 
 export interface GridPosition {
-  x: number; // 0-8
-  y: number; // 0-9
+  x: number;
+  y: number;
 }
 
 export interface TreeMetadata {
   id: string;
   name: string;
   description: string;
+  icon?: string;
+  backgroundImage?: string;
   author: string;
   version: string;
   created: string;
   modified: string;
-} 
+}

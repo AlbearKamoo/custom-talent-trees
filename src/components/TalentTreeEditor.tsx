@@ -1,30 +1,33 @@
-import { useEffect } from 'react';
-import { TalentTree, EditorMode } from '../types/talent';
-import { useTalentTree } from '../hooks/useTalentTree';
-import { useTalentTreeEditor } from '../hooks/useTalentTreeEditor';
-import TalentNode from './TalentNode';
-import TalentConnection from './TalentConnection';
+import { useEffect, useState } from 'react';
+import { TalentGroup, EditorMode } from '../types/talent';
+import { useTalentGroup } from '../hooks/useTalentGroup';
 import EditorToolbar from './EditorToolbar';
 import NodeEditor from './NodeEditor';
-
-import GridCell from './GridCell';
-import { getConnectionState } from '../utils/tree-utils';
-import { GRID_CONFIG } from '../utils/editor-utils';
+import TreeSettings from './TreeSettings';
+import NewGroupModal from './NewGroupModal';
+import TalentTreeCanvas from './TalentTreeCanvas';
+import TalentGroupExplorer from './TalentGroupExplorer';
+import TreeTabStrip from './TreeTabStrip';
+import BackgroundExplorer from './BackgroundExplorer';
 
 interface TalentTreeEditorProps {
-  tree: TalentTree;
-  initialPoints?: number;
+  group: TalentGroup;
 }
 
 const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
-  tree: initialTree,
-  initialPoints = 51,
+  group: initialGroup,
 }) => {
-  // Editor functionality
   const {
-    tree,
+    group,
+    selectedTree,
+    config,
     editorState,
-    createNewTree,
+    canAddTree,
+    createNewGroup,
+    selectTree,
+    addTree,
+    removeTree,
+    updateTreeMetadata,
     deleteNode,
     updateNodeData,
     moveNodePosition,
@@ -35,53 +38,29 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
     selectNode,
     showNodeEditor,
     showTreeEditor,
+    showNewGroup,
     startDrag,
     endDrag,
     getValidationErrors,
-    exportTree: exportEditorTree,
-    importTree: importEditorTree,
-
+    exportGroup,
+    importGroup,
     startNodeCreation,
     createPendingNode,
     cancelNodeCreation,
     deleteConnection,
     setCtrlHeld,
-  } = useTalentTreeEditor(initialTree);
-
-  // Simulation functionality (only used in simulate mode)
-  const {
-    treeState,
-    nodeStates,
-    handleNodeClick,
-    handleNodeHover,
-    resetTreeState,
-    exportTree: exportSimulationTree,
-    importTree: importSimulationTree,
-  } = useTalentTree(tree, initialPoints);
+  } = useTalentGroup(initialGroup);
+  const [pickingBackground, setPickingBackground] = useState(false);
 
   const handleExport = () => {
-    if (editorState.mode === EditorMode.EDIT) {
-      // Export tree structure
-      const exportedData = exportEditorTree();
-      const dataBlob = new Blob([exportedData], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${tree.name}-talent-tree.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } else {
-      // Export talent build
-      const exportedData = exportSimulationTree();
-      const dataStr = JSON.stringify(exportedData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${tree.name}-talent-build.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-    }
+    const exportedData = exportGroup();
+    const dataBlob = new Blob([exportedData], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${group.name.replace(/\s+/g, '-').toLowerCase()}-talent-group.json`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleImportFile = (file: File) => {
@@ -89,16 +68,9 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        if (editorState.mode === EditorMode.EDIT) {
-          // Import tree structure
-          const success = importEditorTree(content);
-          if (!success) {
-            alert('Failed to import tree structure');
-          }
-        } else {
-          // Import talent build
-          const importedData = JSON.parse(content);
-          importSimulationTree(importedData);
+        const success = importGroup(content);
+        if (!success) {
+          alert('Failed to import talent group');
         }
       } catch (error) {
         console.error('Failed to import:', error);
@@ -108,20 +80,20 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
     reader.readAsText(file);
   };
 
-  // Grid state - no longer needed with new architecture
-  
-  // Calculate occupied cells
-  const occupiedCells = new Set(
-    tree.nodes.map(node => `${node.gridX}-${node.gridY}`)
-  );
+  const handleRemoveTree = () => {
+    if (!selectedTree) return;
+    if (group.trees.length <= 1) return;
+    if (window.confirm(`Remove tree "${selectedTree.name}" from this group?`)) {
+      removeTree(selectedTree.id);
+    }
+  };
 
-  // Grid dimensions
-  const gridWidth = GRID_CONFIG.width * GRID_CONFIG.cellSize;
-  const gridHeight = GRID_CONFIG.height * GRID_CONFIG.cellSize;
-
-  // Handle keyboard shortcuts
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (editorState.mode === EditorMode.EDIT) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (editorState.mode !== EditorMode.EDIT) return;
+      const target = e.target as HTMLElement | null;
+      const typing = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+      if (typing) return;
       if (e.key === 'Delete' && editorState.selectedNodeId) {
         deleteNode(editorState.selectedNodeId);
       }
@@ -132,39 +104,50 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
           selectNode(null);
         }
       }
-      if (e.key === 'Control' || e.key === 'Meta') { // Control on Windows/Linux, Meta (Cmd) on Mac
+      if (e.key === 'Control' || e.key === 'Meta') {
         setCtrlHeld(true);
       }
-    }
-  };
+    };
 
-  const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.key === 'Control' || e.key === 'Meta') {
-      setCtrlHeld(false);
-    }
-  };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Meta') {
+        setCtrlHeld(false);
+      }
+    };
 
-  // Add keyboard event listeners
-  useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [editorState.mode, editorState.selectedNodeId, editorState.isConnecting]);
+  }, [
+    editorState.mode,
+    editorState.selectedNodeId,
+    editorState.isConnecting,
+    deleteNode,
+    cancelConnection,
+    selectNode,
+    setCtrlHeld,
+  ]);
 
-  const selectedNode = editorState.selectedNodeId 
-    ? tree.nodes.find(n => n.id === editorState.selectedNodeId) || null
+  const selectedNode = selectedTree && editorState.selectedNodeId
+    ? selectedTree.nodes.find(n => n.id === editorState.selectedNodeId) || null
     : null;
 
   return (
     <div className="w-full h-screen bg-talent-background overflow-hidden flex flex-col">
-      {/* Toolbar */}
       <EditorToolbar
         mode={editorState.mode}
+        format={group.format}
+        groupName={group.name}
+        treeCount={group.trees.length}
+        canAddTree={canAddTree}
+        canRemoveTree={group.trees.length > 1}
         onModeChange={setMode}
-        onNewTree={() => createNewTree()}
+        onNewGroup={() => showNewGroup(true)}
+        onAddTree={addTree}
+        onRemoveTree={handleRemoveTree}
         onExport={handleExport}
         onImport={handleImportFile}
         onShowTreeEditor={() => showTreeEditor(true)}
@@ -174,174 +157,63 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
         isCtrlHeld={editorState.isCtrlHeld}
       />
 
-      {/* Header - only show in simulate mode */}
-      {editorState.mode === EditorMode.SIMULATE && (
-        <div className="bg-gray-900 border-b border-gray-700 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-yellow-400">{tree.name}</h1>
-              <p className="text-gray-300">{tree.description}</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <div className="text-lg font-semibold text-green-400">
-                  Available Points: {treeState.availablePoints}
-                </div>
-                <div className="text-sm text-gray-400">
-                  Spent: {treeState.spentPoints} / {treeState.availablePoints + treeState.spentPoints}
-                </div>
-              </div>
-              <button
-                onClick={resetTreeState}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
-              >
-                Reset Points
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {editorState.mode === EditorMode.EXPLORER ? (
+        <TalentGroupExplorer
+          group={group}
+          selectedTreeId={editorState.selectedTreeId}
+          onSelectTree={selectTree}
+        />
+      ) : (
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <TreeTabStrip
+            trees={group.trees}
+            selectedTreeId={selectedTree?.id ?? null}
+            onSelectTree={selectTree}
+            onRenameTree={(treeId, name) => updateTreeMetadata(treeId, { name })}
+            onChangeIcon={(treeId, icon) => updateTreeMetadata(treeId, { icon })}
+          />
 
-      {/* Talent Tree Canvas */}
-      <div className="flex-1 relative overflow-auto p-8">
-        <div 
-          className="relative"
-          style={{
-            width: gridWidth,
-            height: gridHeight,
-          }}
-        >
-          {/* Background grid visual (lines, numbering) */}
-          <div 
-            className="absolute inset-0 z-0 bg-gray-800 border-2 border-gray-600 rounded-lg pointer-events-none"
-            style={{ 
-              backgroundImage: `
-                linear-gradient(to right, rgba(75, 85, 99, 0.3) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(75, 85, 99, 0.3) 1px, transparent 1px)
-              `,
-              backgroundSize: `${GRID_CONFIG.cellSize}px ${GRID_CONFIG.cellSize}px`,
-            }}
-          >
-            {/* Row and column labels */}
-            <div className="absolute -left-8 top-0 h-full flex flex-col justify-around text-sm text-gray-400">
-              {Array.from({ length: GRID_CONFIG.height }, (_, i) => (
-                <div key={i} className="flex items-center justify-center h-8">
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-            
-            <div className="absolute -top-8 left-0 w-full flex justify-around text-sm text-gray-400">
-              {Array.from({ length: GRID_CONFIG.width }, (_, i) => (
-                <div key={i} className="flex items-center justify-center w-8">
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* SVG for connections */}
-          <svg
-            className={`absolute inset-0 ${editorState.isCtrlHeld ? 'z-30' : 'pointer-events-none z-10'}`}
-            width={gridWidth}
-            height={gridHeight}
-          >
-            {tree.connections.map((connection) => {
-              const fromNode = tree.nodes.find(n => n.id === connection.from);
-              const toNode = tree.nodes.find(n => n.id === connection.to);
-              
-              if (!fromNode || !toNode) return null;
-              
-              const isActive = editorState.mode === EditorMode.SIMULATE 
-                ? getConnectionState(connection, treeState)
-                : true;
-              
-              return (
-                <TalentConnection
-                  key={connection.id}
-                  fromNode={fromNode}
-                  toNode={toNode}
-                  isActive={isActive}
-                  editorMode={editorState.mode}
-                  connectionId={connection.id}
+          <div className="flex-1 relative overflow-auto p-8">
+            {selectedTree ? (
+              <div className="inline-flex flex-col items-stretch">
+                <TalentTreeCanvas
+                  tree={selectedTree}
+                  gridConfig={config}
+                  mode={EditorMode.EDIT}
+                  selectedNodeId={editorState.selectedNodeId}
+                  isConnecting={editorState.isConnecting}
                   isCtrlHeld={editorState.isCtrlHeld}
+                  onNodeClick={(nodeId) => selectNode(nodeId)}
+                  onStartConnection={startConnection}
+                  onCompleteConnection={completeConnection}
+                  onStartDrag={startDrag}
+                  onDrag={moveNodePosition}
+                  onEndDrag={endDrag}
+                  onCellClick={startNodeCreation}
                   onConnectionClick={(connectionId) => {
                     if (window.confirm('Are you sure you want to delete this connection?')) {
                       deleteConnection(connectionId);
                     }
                   }}
                 />
-              );
-            })}
-          </svg>
-
-          {/* Interactive layer: Grid cells + Talent nodes */}
-          <div className="absolute inset-0 z-20">
-            {/* Grid cells for empty spaces (edit mode only) */}
-            {editorState.mode === EditorMode.EDIT && 
-              Array.from({ length: GRID_CONFIG.height }, (_, y) =>
-                Array.from({ length: GRID_CONFIG.width }, (_, x) => {
-                  const cellKey = `${x}-${y}`;
-                  const isOccupied = occupiedCells.has(cellKey);
-                  
-                  // Only render empty cells
-                  if (isOccupied) return null;
-                  
-                  return (
-                    <GridCell
-                      key={cellKey}
-                      x={x}
-                      y={y}
-                      isOccupied={false}
-                      isCtrlHeld={editorState.isCtrlHeld}
-                      onCellClick={(cellX: number, cellY: number) => {
-                        const pixelPos = { 
-                          x: cellX * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
-                          y: cellY * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
-                        };
-                        startNodeCreation(pixelPos);
-                      }}
-                      onCellDoubleClick={(cellX: number, cellY: number) => {
-                        const pixelPos = { 
-                          x: cellX * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2, 
-                          y: cellY * GRID_CONFIG.cellSize + GRID_CONFIG.cellSize / 2 
-                        };
-                        startNodeCreation(pixelPos);
-                      }}
-                    />
-                  );
-                })
-              )
-            }
-
-            {/* Talent nodes */}
-            {tree.nodes.map((node) => (
-              <TalentNode
-                key={node.id}
-                node={node}
-                state={editorState.mode === EditorMode.SIMULATE ? nodeStates[node.id] : 'unlocked' as any}
-                currentRanks={editorState.mode === EditorMode.SIMULATE ? (treeState.selectedNodes[node.id] || 0) : 0}
-                onClick={editorState.mode === EditorMode.SIMULATE ? handleNodeClick : () => selectNode(node.id)}
-                onHover={editorState.mode === EditorMode.SIMULATE ? handleNodeHover : () => {}}
-                isHovered={editorState.mode === EditorMode.SIMULATE ? treeState.hoveredNode === node.id : false}
-                editorMode={editorState.mode}
-                isSelected={editorState.selectedNodeId === node.id}
-                isConnecting={editorState.isConnecting}
-                onStartConnection={startConnection}
-                onCompleteConnection={completeConnection}
-                onStartDrag={startDrag}
-                onDrag={moveNodePosition}
-                onEndDrag={endDrag}
-              />
-            ))}
+                <button
+                  type="button"
+                  onClick={() => setPickingBackground(true)}
+                  className="mt-3 self-center px-3 py-1.5 text-sm rounded border border-gray-600 bg-gray-800 text-gray-200 hover:border-yellow-500 hover:text-yellow-400"
+                >
+                  Edit Background
+                </button>
+              </div>
+            ) : (
+              <div className="text-gray-400">This group has no trees.</div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Node Editor Modal */}
       <NodeEditor
         node={selectedNode}
-        isOpen={editorState.showNodeEditor || (editorState.mode === EditorMode.EDIT && !!selectedNode)}
+        isOpen={editorState.mode === EditorMode.EDIT && (editorState.showNodeEditor || !!selectedNode)}
         isCreatingNew={!!editorState.pendingNodePosition}
         onClose={() => {
           if (editorState.pendingNodePosition) {
@@ -356,20 +228,34 @@ const TalentTreeEditor: React.FC<TalentTreeEditorProps> = ({
         onCreateNew={createPendingNode}
       />
 
-      {/* Instructions - only show in simulate mode */}
-      {editorState.mode === EditorMode.SIMULATE && (
-        <div className="fixed bottom-4 right-4 bg-gray-900 border border-gray-600 rounded-lg p-4 max-w-sm">
-          <h3 className="font-bold text-yellow-400 mb-2">Instructions</h3>
-          <ul className="text-sm text-gray-300 space-y-1">
-            <li>• Left click to allocate points</li>
-            <li>• Right click to deallocate points</li>
-            <li>• Hover for talent details</li>
-            <li>• Export/Import builds as JSON</li>
-          </ul>
-        </div>
+      <TreeSettings
+        tree={selectedTree}
+        isOpen={editorState.showTreeEditor}
+        onClose={() => showTreeEditor(false)}
+        onSave={updateTreeMetadata}
+      />
+
+      {pickingBackground && selectedTree && (
+        <BackgroundExplorer
+          value={selectedTree.backgroundImage}
+          onSelect={(background) => {
+            updateTreeMetadata(selectedTree.id, {
+              backgroundImage: background || undefined,
+            });
+            setPickingBackground(false);
+          }}
+          onClose={() => setPickingBackground(false)}
+        />
       )}
+
+      <NewGroupModal
+        isOpen={editorState.showNewGroup}
+        onClose={() => showNewGroup(false)}
+        onCreate={(format, name) => createNewGroup(format, name)}
+      />
+
     </div>
   );
 };
 
-export default TalentTreeEditor; 
+export default TalentTreeEditor;

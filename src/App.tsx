@@ -1,15 +1,12 @@
 import TalentTreeEditor from './components/TalentTreeEditor';
-import { sampleBloodDeathKnightTree } from './data/sampleTalentTree';
+import { sampleCompactDruidGroup } from './data/sampleTalentTree';
 
 function App() {
   return (
     <div className="App">
-      <TalentTreeEditor 
-        tree={sampleBloodDeathKnightTree} 
-        initialPoints={51}
-      />
+      <TalentTreeEditor group={sampleCompactDruidGroup} />
     </div>
   );
 }
 
-export default App; 
+export default App;

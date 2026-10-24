@@ -1,5 +1,8 @@
 import { TalentNode, TalentTree, TalentState, TalentTreeState } from '../types/talent';
 
+export const treeCapacity = (tree: TalentTree): number =>
+  tree.nodes.reduce((sum, node) => sum + node.maxRanks, 0);
+
 export const calculateTalentState = (
   node: TalentNode,
   treeState: TalentTreeState,
@@ -145,12 +148,12 @@ export const exportTreeState = (treeState: TalentTreeState, tree: TalentTree) =>
 };
 
 export const importTreeState = (
-  exportedState: any,
+  exportedState: { selectedNodes?: Record<string, number> },
   _tree: TalentTree,
   totalPoints: number
 ): TalentTreeState => {
   const spentPoints = Object.values(exportedState.selectedNodes || {})
-    .reduce((total: number, ranks: any) => total + (ranks as number), 0);
+    .reduce((total, ranks) => total + ranks, 0);
   
   return {
     selectedNodes: exportedState.selectedNodes || {},

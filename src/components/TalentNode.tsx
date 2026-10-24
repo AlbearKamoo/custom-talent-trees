@@ -1,4 +1,4 @@
-import { TalentNode as TalentNodeType, TalentState, EditorMode } from '../types/talent';
+import { TalentNode as TalentNodeType, TalentState, EditorMode, GridConfig } from '../types/talent';
 import { gridToPixel } from '../utils/editor-utils';
 import TalentIcon from './TalentIcon';
 
@@ -6,10 +6,10 @@ interface TalentNodeProps {
   node: TalentNodeType;
   state: TalentState;
   currentRanks: number;
+  gridConfig: GridConfig;
   onClick: (nodeId: string, isRightClick?: boolean) => void;
   onHover: (nodeId: string | null) => void;
   isHovered: boolean;
-  // Editor props
   editorMode?: EditorMode;
   isSelected?: boolean;
   isConnecting?: boolean;
@@ -24,10 +24,11 @@ const TalentNode: React.FC<TalentNodeProps> = ({
   node,
   state,
   currentRanks,
+  gridConfig,
   onClick,
   onHover,
   isHovered,
-  editorMode = EditorMode.SIMULATE,
+  editorMode = EditorMode.EXPLORER,
   isSelected = false,
   isConnecting = false,
   onStartConnection,
@@ -38,23 +39,21 @@ const TalentNode: React.FC<TalentNodeProps> = ({
 }) => {
   const getNodeStyles = () => {
     const baseStyles = "relative w-12 h-12 rounded-lg border-2 cursor-pointer transition-all duration-200 flex items-center justify-center";
-    
-    // Editor mode styling
+
     if (editorMode === EditorMode.EDIT) {
       let editStyles = `${baseStyles} bg-gray-700 border-gray-500 hover:border-yellow-500`;
-      
+
       if (isSelected) {
         editStyles += " border-yellow-500 shadow-talent";
       }
-      
+
       if (isConnecting) {
         editStyles += " border-blue-500 shadow-lg";
       }
-      
+
       return editStyles;
     }
-    
-    // Simulation mode styling
+
     switch (state) {
       case TalentState.LOCKED:
         return `${baseStyles} bg-talent-locked border-talent-border opacity-50`;
@@ -74,7 +73,7 @@ const TalentNode: React.FC<TalentNodeProps> = ({
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (editorMode === EditorMode.EDIT) {
       if (e.shiftKey && onStartConnection && !isConnecting) {
         onStartConnection(node.id);
@@ -90,7 +89,7 @@ const TalentNode: React.FC<TalentNodeProps> = ({
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (editorMode === EditorMode.SIMULATE) {
+    if (editorMode === EditorMode.EXPLORER) {
       onClick(node.id, true);
     }
   };
@@ -103,19 +102,18 @@ const TalentNode: React.FC<TalentNodeProps> = ({
     onHover(null);
   };
 
-  // Drag functionality for editor mode
   const handleMouseDown = (e: React.MouseEvent) => {
     if (editorMode === EditorMode.EDIT && onStartDrag && !isConnecting) {
       onStartDrag(node.id);
-      
+
       const startX = e.clientX;
       const startY = e.clientY;
-      const startPixelPos = gridToPixel({ x: node.gridX, y: node.gridY });
+      const startPixelPos = gridToPixel({ x: node.gridX, y: node.gridY }, gridConfig);
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const deltaX = moveEvent.clientX - startX;
         const deltaY = moveEvent.clientY - startY;
-        
+
         if (onDrag) {
           onDrag(node.id, {
             x: startPixelPos.x + deltaX,
@@ -137,7 +135,7 @@ const TalentNode: React.FC<TalentNodeProps> = ({
     }
   };
 
-  const pixelPosition = gridToPixel({ x: node.gridX, y: node.gridY });
+  const pixelPosition = gridToPixel({ x: node.gridX, y: node.gridY }, gridConfig);
 
   return (
     <div
@@ -160,15 +158,13 @@ const TalentNode: React.FC<TalentNodeProps> = ({
         title={`${node.name} (${currentRanks}/${node.maxRanks})`}
       >
         <TalentIcon icon={node.icon} name={node.name} size={32} />
-        
-        {/* Rank indicator */}
-        {node.maxRanks > 1 && (
+
+        {editorMode !== EditorMode.EDIT && node.maxRanks > 1 && (
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center text-xs font-bold text-black">
             {currentRanks}
           </div>
         )}
-        
-        {/* Hover tooltip */}
+
         {isHovered && (
           <div className="absolute z-50 bg-gray-900 border border-gray-600 rounded-lg p-3 shadow-lg min-w-64 max-w-80 -top-2 left-full ml-2">
             <div className="font-bold text-yellow-400 mb-1">{node.name}</div>
@@ -187,4 +183,4 @@ const TalentNode: React.FC<TalentNodeProps> = ({
   );
 };
 
-export default TalentNode; 
+export default TalentNode;

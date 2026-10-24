@@ -1,13 +1,11 @@
-import { TalentTree } from '../types/talent';
+import { TalentGroup, TalentTree } from '../types/talent';
 
 export const sampleBloodDeathKnightTree: TalentTree = {
   id: 'blood-death-knight',
   name: 'Blood Death Knight',
   description: 'A tanking specialization focused on self-healing and damage mitigation',
-  totalPoints: 51,
-  spentPoints: 0,
+  icon: '🩸',
   nodes: [
-    // Row 0 (Top tier) - Entry talents
     {
       id: 'improved-blood-tap',
       name: 'Improved Blood Tap',
@@ -60,8 +58,6 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       gridX: 7,
       gridY: 0,
     },
-
-    // Row 2 - Second tier
     {
       id: 'rune-tap',
       name: 'Rune Tap',
@@ -101,8 +97,6 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       gridX: 6,
       gridY: 2,
     },
-
-    // Row 4 - Third tier
     {
       id: 'dark-conviction',
       name: 'Dark Conviction',
@@ -129,8 +123,6 @@ export const sampleBloodDeathKnightTree: TalentTree = {
       gridX: 5,
       gridY: 6,
     },
-
-    // Row 8 - Ultimate
     {
       id: 'heart-strike',
       name: 'Heart Strike',
@@ -146,23 +138,287 @@ export const sampleBloodDeathKnightTree: TalentTree = {
     },
   ],
   connections: [
-    // Tier 0 to Tier 2 connections
     { id: 'conn1', from: 'improved-blood-tap', to: 'rune-tap', isActive: false },
     { id: 'conn2', from: 'butchery', to: 'rune-tap', isActive: false },
     { id: 'conn3', from: 'butchery', to: 'blood-presence', isActive: false },
     { id: 'conn4', from: 'subversion', to: 'blood-presence', isActive: false },
     { id: 'conn5', from: 'blade-barrier', to: 'scent-of-blood', isActive: false },
-    
-    // Tier 2 to Tier 4 connections
     { id: 'conn6', from: 'rune-tap', to: 'dark-conviction', isActive: false },
     { id: 'conn7', from: 'blood-presence', to: 'dark-conviction', isActive: false },
     { id: 'conn8', from: 'blood-presence', to: 'vampiric-blood', isActive: false },
     { id: 'conn9', from: 'scent-of-blood', to: 'vampiric-blood', isActive: false },
-    
-    // Tier 4 to Tier 6 connections
     { id: 'conn10', from: 'dark-conviction', to: 'vampiric-blood', isActive: false },
-    
-    // Tier 6 to Tier 8 connections
     { id: 'conn11', from: 'vampiric-blood', to: 'heart-strike', isActive: false },
   ],
-}; 
+};
+
+const sampleBalanceTree: TalentTree = {
+  id: 'balance',
+  name: 'Balance',
+  description: 'Harness the power of the moon and stars.',
+  icon: '🌙',
+  backgroundImage: 'retail/druid-balance',
+  nodes: [
+    {
+      id: 'starlight-wrath',
+      name: 'Starlight Wrath',
+      description: 'Reduces the cast time of Wrath and Starfire.',
+      icon: '✨',
+      maxRanks: 5,
+      currentRanks: 0,
+      requiredPoints: 0,
+      prerequisites: [],
+      connections: ['natures-grace'],
+      gridX: 1,
+      gridY: 0,
+    },
+    {
+      id: 'moonglow',
+      name: 'Moonglow',
+      description: 'Reduces the mana cost of your Moonfire, Starfire, and Wrath spells.',
+      icon: '🌕',
+      maxRanks: 3,
+      currentRanks: 0,
+      requiredPoints: 0,
+      prerequisites: [],
+      connections: ['natures-grace'],
+      gridX: 2,
+      gridY: 0,
+    },
+    {
+      id: 'natures-grace',
+      name: "Nature's Grace",
+      description: 'All spell criticals grant you a chance to gain Nature\'s Grace.',
+      icon: '🌿',
+      maxRanks: 1,
+      currentRanks: 0,
+      requiredPoints: 5,
+      prerequisites: ['starlight-wrath'],
+      connections: ['moonkin-form'],
+      gridX: 1,
+      gridY: 2,
+    },
+    {
+      id: 'moonkin-form',
+      name: 'Moonkin Form',
+      description: 'Shapeshift into Moonkin Form, increasing armor and spell damage.',
+      icon: '🦉',
+      maxRanks: 1,
+      currentRanks: 0,
+      requiredPoints: 10,
+      prerequisites: ['natures-grace'],
+      connections: ['starfall'],
+      gridX: 1,
+      gridY: 4,
+    },
+    {
+      id: 'starfall',
+      name: 'Starfall',
+      description: 'You call down waves of falling stars that damage nearby enemies.',
+      icon: '☄️',
+      maxRanks: 1,
+      currentRanks: 0,
+      requiredPoints: 20,
+      prerequisites: ['moonkin-form'],
+      connections: [],
+      gridX: 1,
+      gridY: 6,
+    },
+  ],
+  connections: [
+    { id: 'bal-1', from: 'starlight-wrath', to: 'natures-grace', isActive: false },
+    { id: 'bal-2', from: 'moonglow', to: 'natures-grace', isActive: false },
+    { id: 'bal-3', from: 'natures-grace', to: 'moonkin-form', isActive: false },
+    { id: 'bal-4', from: 'moonkin-form', to: 'starfall', isActive: false },
+  ],
+};
+
+const sampleFeralTree: TalentTree = {
+  id: 'feral-combat',
+  name: 'Feral Combat',
+  description: 'Tear through enemies in cat and bear form.',
+  icon: '🐾',
+  backgroundImage: 'wrath/282',
+  nodes: [
+    {
+      id: 'ferocity',
+      name: 'Ferocity',
+      description: 'Reduces the cost of your Maul, Swipe, Claw, and Rake abilities.',
+      icon: '😺',
+      maxRanks: 5,
+      currentRanks: 0,
+      requiredPoints: 0,
+      prerequisites: [],
+      connections: ['feral-instinct'],
+      gridX: 1,
+      gridY: 0,
+    },
+    {
+      id: 'feral-aggression',
+      name: 'Feral Aggression',
+      description: 'Increases the attack power reduction of Demoralizing Roar.',
+      icon: '😾',
+      maxRanks: 5,
+      currentRanks: 0,
+      requiredPoints: 0,
+      prerequisites: [],
+      connections: ['primal-bite'],
+      gridX: 2,
+      gridY: 0,
+    },
+    {
+      id: 'feral-instinct',
+      name: 'Feral Instinct',
+      description: 'Increases threat generated while in Bear Form.',
+      icon: '🐻',
+      maxRanks: 3,
+      currentRanks: 0,
+      requiredPoints: 5,
+      prerequisites: ['ferocity'],
+      connections: ['primal-bite'],
+      gridX: 1,
+      gridY: 2,
+    },
+    {
+      id: 'primal-bite',
+      name: 'Primal Bite',
+      description: 'Bite the target, dealing 100% normal damage plus 26 and generating a high amount of threat.',
+      icon: '🦷',
+      maxRanks: 1,
+      currentRanks: 0,
+      requiredPoints: 10,
+      prerequisites: ['feral-instinct'],
+      connections: ['leader-of-the-pack'],
+      gridX: 1,
+      gridY: 3,
+    },
+    {
+      id: 'predatory-strikes',
+      name: 'Predatory Strikes',
+      description: 'Increases your melee attack power in Cat, Bear, and Dire Bear Form.',
+      icon: '🐱',
+      maxRanks: 3,
+      currentRanks: 0,
+      requiredPoints: 15,
+      prerequisites: ['primal-bite'],
+      connections: ['leader-of-the-pack'],
+      gridX: 2,
+      gridY: 4,
+    },
+    {
+      id: 'leader-of-the-pack',
+      name: 'Leader of the Pack',
+      description: 'While in Cat, Bear, or Dire Bear Form, increases critical strike chance of all party members.',
+      icon: '🦁',
+      maxRanks: 1,
+      currentRanks: 0,
+      requiredPoints: 20,
+      prerequisites: ['primal-bite'],
+      connections: [],
+      gridX: 1,
+      gridY: 6,
+    },
+  ],
+  connections: [
+    { id: 'fer-1', from: 'ferocity', to: 'feral-instinct', isActive: false },
+    { id: 'fer-2', from: 'feral-aggression', to: 'primal-bite', isActive: false },
+    { id: 'fer-3', from: 'feral-instinct', to: 'primal-bite', isActive: false },
+    { id: 'fer-4', from: 'primal-bite', to: 'leader-of-the-pack', isActive: false },
+    { id: 'fer-5', from: 'primal-bite', to: 'predatory-strikes', isActive: false },
+  ],
+};
+
+const sampleRestorationTree: TalentTree = {
+  id: 'restoration',
+  name: 'Restoration',
+  description: 'Heal allies with the power of nature.',
+  icon: '🍃',
+  backgroundImage: 'wrath/283',
+  nodes: [
+    {
+      id: 'improved-mark',
+      name: 'Improved Mark of the Wild',
+      description: 'Increases the effects of your Mark of the Wild and Gift of the Wild spells.',
+      icon: '🌳',
+      maxRanks: 5,
+      currentRanks: 0,
+      requiredPoints: 0,
+      prerequisites: [],
+      connections: ['gift-of-nature'],
+      gridX: 1,
+      gridY: 0,
+    },
+    {
+      id: 'furor',
+      name: 'Furor',
+      description: 'Gives you a chance to gain extra energy or rage when shifting.',
+      icon: '🔥',
+      maxRanks: 5,
+      currentRanks: 0,
+      requiredPoints: 0,
+      prerequisites: [],
+      connections: ['natures-swiftness'],
+      gridX: 2,
+      gridY: 0,
+    },
+    {
+      id: 'gift-of-nature',
+      name: 'Gift of Nature',
+      description: 'Increases the effect of all healing spells.',
+      icon: '💚',
+      maxRanks: 5,
+      currentRanks: 0,
+      requiredPoints: 5,
+      prerequisites: ['improved-mark'],
+      connections: ['swiftmend'],
+      gridX: 1,
+      gridY: 2,
+    },
+    {
+      id: 'natures-swiftness',
+      name: "Nature's Swiftness",
+      description: 'When activated, your next Nature spell becomes an instant cast spell.',
+      icon: '⚡',
+      maxRanks: 1,
+      currentRanks: 0,
+      requiredPoints: 10,
+      prerequisites: ['furor'],
+      connections: ['swiftmend'],
+      gridX: 2,
+      gridY: 3,
+    },
+    {
+      id: 'swiftmend',
+      name: 'Swiftmend',
+      description: 'Consumes a Rejuvenation or Regrowth effect to instantly heal the target.',
+      icon: '🌼',
+      maxRanks: 1,
+      currentRanks: 0,
+      requiredPoints: 20,
+      prerequisites: ['gift-of-nature'],
+      connections: [],
+      gridX: 1,
+      gridY: 6,
+    },
+  ],
+  connections: [
+    { id: 'resto-1', from: 'improved-mark', to: 'gift-of-nature', isActive: false },
+    { id: 'resto-2', from: 'furor', to: 'natures-swiftness', isActive: false },
+    { id: 'resto-3', from: 'gift-of-nature', to: 'swiftmend', isActive: false },
+    { id: 'resto-4', from: 'natures-swiftness', to: 'swiftmend', isActive: false },
+  ],
+};
+
+export const sampleCompactDruidGroup: TalentGroup = {
+  id: 'druid-classic',
+  name: 'Classic Druid',
+  format: 'compact',
+  trees: [sampleBalanceTree, sampleFeralTree, sampleRestorationTree],
+};
+
+export const sampleLargeDeathKnightGroup: TalentGroup = {
+  id: 'death-knight',
+  name: 'Death Knight',
+  format: 'large',
+  trees: [sampleBloodDeathKnightTree],
+};

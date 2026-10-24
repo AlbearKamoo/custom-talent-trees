@@ -1,10 +1,12 @@
-import { TalentNode, EditorMode } from '../types/talent';
+import { TalentNode, EditorMode, GridConfig } from '../types/talent';
 import { gridToPixel } from '../utils/editor-utils';
 
 interface TalentConnectionProps {
   fromNode: TalentNode;
   toNode: TalentNode;
   isActive: boolean;
+  gridConfig: GridConfig;
+  markerPrefix: string;
   editorMode?: EditorMode;
   connectionId?: string;
   onConnectionClick?: (connectionId: string) => void;
@@ -15,24 +17,25 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
   fromNode,
   toNode,
   isActive,
-  editorMode = EditorMode.SIMULATE,
+  gridConfig,
+  markerPrefix,
+  editorMode = EditorMode.EXPLORER,
   connectionId,
   onConnectionClick,
   isCtrlHeld = false,
 }) => {
-  const fromPixel = gridToPixel({ x: fromNode.gridX, y: fromNode.gridY });
-  const toPixel = gridToPixel({ x: toNode.gridX, y: toNode.gridY });
+  const fromPixel = gridToPixel({ x: fromNode.gridX, y: fromNode.gridY }, gridConfig);
+  const toPixel = gridToPixel({ x: toNode.gridX, y: toNode.gridY }, gridConfig);
 
   const getConnectionStyles = () => {
-    const baseStyles = isActive 
+    const baseStyles = isActive
       ? "stroke-talent-connectionActive stroke-2 drop-shadow-sm"
       : "stroke-talent-connection stroke-1 opacity-60";
-    
-    // Add interactive styles only when ctrl is held in edit mode
+
     if (editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isCtrlHeld) {
       return `${baseStyles} cursor-pointer hover:stroke-red-400 hover:stroke-3 transition-all duration-150`;
     }
-    
+
     return baseStyles;
   };
 
@@ -44,23 +47,20 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
     }
   };
 
-  // Calculate the direction vector and normalize it
   const dx = toPixel.x - fromPixel.x;
   const dy = toPixel.y - fromPixel.y;
-  const length = Math.sqrt(dx * dx + dy * dy);
+  const length = Math.sqrt(dx * dx + dy * dy) || 1;
   const unitX = dx / length;
   const unitY = dy / length;
 
-  // Offset the end point to stop at the edge of the target node (24px radius for node)
   const nodeRadius = 24;
   const adjustedToX = toPixel.x - unitX * nodeRadius;
   const adjustedToY = toPixel.y - unitY * nodeRadius;
 
-  const markerId = `arrowhead-${isActive ? 'active' : 'inactive'}`;
+  const markerId = `${markerPrefix}-${isActive ? 'active' : 'inactive'}`;
 
   return (
     <g>
-      {/* Define arrowhead marker */}
       <defs>
         <marker
           id={markerId}
@@ -77,8 +77,7 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
           />
         </marker>
       </defs>
-      
-      {/* Invisible wider line for easier clicking when ctrl is held */}
+
       {editorMode === EditorMode.EDIT && connectionId && onConnectionClick && isCtrlHeld && (
         <line
           x1={fromPixel.x}
@@ -92,8 +91,7 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
           onClick={handleConnectionClick}
         />
       )}
-      
-      {/* Visible connection line */}
+
       <line
         x1={fromPixel.x}
         y1={fromPixel.y}
@@ -109,4 +107,4 @@ const TalentConnection: React.FC<TalentConnectionProps> = ({
   );
 };
 
-export default TalentConnection; 
+export default TalentConnection;
